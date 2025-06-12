@@ -20,3 +20,4 @@ set -x
 ./vfio-pci-huge-fault-race $device
 ./iommufd-pci-device-open $device
 ./vfio-pci-device-migration $device
+./vfio-pci-device-map-alignment $device
