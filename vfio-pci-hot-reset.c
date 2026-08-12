@@ -31,9 +31,6 @@ void usage(char *name)
 	printf("usage: %s <ssss:bb:dd.f>\n", name);
 }
 
-#define false 0
-#define true 1
-
 int main(int argc, char **argv)
 {
        int i, ret, container, group, device, *pfd;

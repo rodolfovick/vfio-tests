@@ -49,11 +49,13 @@ static int vfio_device_query_migration_flags(int fd, uint64_t *mig_flags)
 	feature->flags = VFIO_DEVICE_FEATURE_GET | VFIO_DEVICE_FEATURE_MIGRATION;
     
 	if (ioctl(fd, VFIO_DEVICE_FEATURE, feature)) {
-		if (errno != ENOTTY) {
-			printf("Failed to query migration features: %d %s\n",
-			       errno, strerror(errno));
-			return -1;
+		if (errno == ENOTTY) {
+			*mig_flags = 0;
+			return 0;
 		}
+		printf("Failed to query migration features: %d %s\n",
+		       errno, strerror(errno));
+		return -1;
 	}
 	*mig_flags = mig->flags;
 	return 0;
