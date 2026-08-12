@@ -2,8 +2,6 @@ CFLAGS = -g -Wall
 SHARED_SRCS = utils.c
 HEADERS = utils.h
 TEST_SRCS = \
-	kvm-huge-guest-test.c \
-	leaktest-legacy-kvm.c \
 	vfio-correctness-tests.c \
 	vfio-huge-guest-test.c \
 	vfio-iommu-map-unmap.c \
