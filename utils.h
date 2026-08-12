@@ -35,6 +35,8 @@ static inline unsigned long now_nsec(void)
 	return NSEC_PER_SEC * (unsigned long) ts.tv_sec + ts.tv_nsec;
 }
 
+void hexdump(const void *data, size_t len);
+
 void *mmap_align(void *addr, size_t length, int prot, int flags,
 		 int fd, off_t offset, size_t align);
 

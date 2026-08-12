@@ -24,7 +24,27 @@
 
 #include <linux/vfio.h>
 
-int verbose;
+int verbose = -1;
+
+static void __attribute__((constructor)) init_verbose(void)
+{
+	verbose = !!getenv("VFIO_VERBOSE");
+}
+
+void hexdump(const void *data, size_t len)
+{
+	const unsigned char *p = data;
+	size_t i;
+
+	for (i = 0; i < len; i++) {
+		if (i % 16 == 0)
+			printf("\n%08zx: ", i);
+		else if (i % 4 == 0)
+			printf(" ");
+		printf("%02x", p[i]);
+	}
+	printf("\n");
+}
 
 int vfio_device_iommufd_getfd(const char *devname)
 {

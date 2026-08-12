@@ -98,10 +98,8 @@ int main(int argc, char **argv)
 				continue;
 			}
 
-			printf("[");
-			fwrite(map, 1, region_info.size > 16 ? 16 :
-						region_info.size, stdout);
-			printf("]\n");
+			hexdump(map, region_info.size > 64 ? 64 :
+					region_info.size);
 			munmap(map, (size_t)region_info.size);
 		}
 
