@@ -10,7 +10,6 @@
 #include <errno.h>
 #include <libgen.h>
 #include <fcntl.h>
-#include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -90,7 +89,7 @@ int main(int argc, char **argv)
 		printf("size 0x%lx, offset 0x%lx, flags 0x%x\n",
 		       (unsigned long)info->size,
 		       (unsigned long)info->offset, info->flags);
-		if (0 && info->flags & VFIO_REGION_INFO_FLAG_MMAP) {
+		if (verbose && info->flags & VFIO_REGION_INFO_FLAG_MMAP) {
 			void *map = mmap(NULL, (size_t)region_info.size,
 					 PROT_READ, MAP_SHARED, device,
 					 (off_t)region_info.offset);
