@@ -174,17 +174,17 @@ int main(int argc, char **argv)
 	if (open_device(devname, &devfd, &iommufd))
 		return -1;
 
+	if (!migration_supported(devfd)) {
+		printf("migration not supported\n");
+		ret = 0;
+		goto out;
+	}
+	printf("migration: supported\n");
+
 	enum vfio_device_mig_state cur;
 	if (get_state(devfd, &cur))
 		return -1;
 	printf("initial state: %s\n", state_name(cur));
-
-	if (!migration_supported(devfd)) {
-		printf("migration not supported\n");
-		ret = -1;
-		goto out;
-	}
-	printf("migration: supported\n");
 
 	for (i = 0; i < loops; i++) {
 		int save_fd = -1, resume_fd = -1;
