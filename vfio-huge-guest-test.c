@@ -32,21 +32,19 @@
 
 void usage(char *name)
 {
-	printf("usage: %s <iommu group id> [hugepage path | guest_gb]\n", name);
+	printf("usage: %s <ssss:bb:dd.f> [hugepage path | guest_gb] [guest_gb]\n", name);
 }
 
 int main(int argc, char **argv)
 {
-	int ret, container, groupid, fd = -1;
+	const char *devname;
+	int ret, container, fd = -1;
 	char path[PATH_MAX + NAME_MAX + sizeof("/.XXXXXX")];
 	char mempath[PATH_MAX] = "";
 	unsigned long vaddr;
 	unsigned long guest_gb = DEFAULT_GUEST_GB;
 	unsigned long mmap_gb = DEFAULT_MMAP_GB;
 	unsigned long mmap_size;
-	struct vfio_group_status group_status = {
-		.argsz = sizeof(group_status)
-	};
 	struct vfio_iommu_type1_dma_map dma_map = {
 		.argsz = sizeof(dma_map)
 	};
@@ -56,13 +54,9 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	ret = sscanf(argv[1], "%d", &groupid);
-	if (ret != 1) {
-		usage(argv[0]);
-		return -1;
-	}
+	devname = argv[1];
 
-	if (vfio_group_attach(groupid, &container, NULL))
+	if (vfio_device_attach(devname, &container, NULL, NULL))
 		return -1;
 
 	if (argc > 2) {

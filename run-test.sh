@@ -3,7 +3,6 @@
 me=${0##*/}
 
 device=${1:-"0000:08:10.0"}
-groupid=$(basename $(readlink /sys/bus/pci/devices/$device/iommu_group))
 
 # Detect VF vs PF
 if [ -e /sys/bus/pci/devices/$device/physfn ]; then
@@ -61,7 +60,7 @@ run_test() {
 	echo ""
 }
 
-run_test ./vfio-correctness-tests $groupid
+run_test ./vfio-correctness-tests $device
 
 if [ $is_vf -eq 0 ]; then
 	if [ $hugepages_free -eq 0 ]; then
@@ -70,7 +69,7 @@ if [ $is_vf -eq 0 ]; then
 		hugepages_free=$(cat /sys/kernel/mm/hugepages/hugepages-2048kB/free_hugepages)
 		echo "Hugepages free: $hugepages_free"
 	fi
-	run_test ./vfio-huge-guest-test $groupid /dev/hugepages 8
+	run_test ./vfio-huge-guest-test $device /dev/hugepages 8
 	run_test ./vfio-pci-hot-reset $device
 	run_test ./vfio-pci-huge-fault-race $device
 fi
