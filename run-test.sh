@@ -32,6 +32,11 @@ map_max=$(( dma_entry_limit / 512 ))
 [ $map_max -lt 4 ] && map_max=4
 echo "DMA entry limit: $dma_entry_limit, page size: ${pagesize} (page map: ${map_size_mb}MB, 2M map: ${map_max} iterations)"
 
+# Hugepage availability
+hugepages_free=$(cat /sys/kernel/mm/hugepages/hugepages-2048kB/free_hugepages 2>/dev/null)
+hugepages_free=${hugepages_free:-0}
+echo "Hugepages free: $hugepages_free"
+
 pass=0
 fail=0
 skip=0
@@ -59,7 +64,13 @@ run_test() {
 run_test ./vfio-correctness-tests $groupid
 
 if [ $is_vf -eq 0 ]; then
-	run_test ./vfio-huge-guest-test $groupid
+	if [ $hugepages_free -eq 0 ]; then
+		echo "Allocating hugepages for huge-guest-test..."
+		echo 2048 > /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages
+		hugepages_free=$(cat /sys/kernel/mm/hugepages/hugepages-2048kB/free_hugepages)
+		echo "Hugepages free: $hugepages_free"
+	fi
+	run_test ./vfio-huge-guest-test $groupid /dev/hugepages 8
 	run_test ./vfio-pci-hot-reset $device
 	run_test ./vfio-pci-huge-fault-race $device
 fi

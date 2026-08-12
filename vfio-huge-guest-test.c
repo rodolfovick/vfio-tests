@@ -27,13 +27,12 @@
 
 #include "utils.h"
 
-#define MMAP_GB (4UL)
-#define MMAP_SIZE (MMAP_GB * 1024 * 1024 * 1024)
-#define GUEST_GB (1024UL)
+#define DEFAULT_MMAP_GB 4UL
+#define DEFAULT_GUEST_GB 1024UL
 
 void usage(char *name)
 {
-	printf("usage: %s <iommu group id> [hugepage path]\n", name);
+	printf("usage: %s <iommu group id> [hugepage path | guest_gb]\n", name);
 }
 
 int main(int argc, char **argv)
@@ -42,6 +41,9 @@ int main(int argc, char **argv)
 	char path[PATH_MAX + NAME_MAX + sizeof("/.XXXXXX")];
 	char mempath[PATH_MAX] = "";
 	unsigned long vaddr;
+	unsigned long guest_gb = DEFAULT_GUEST_GB;
+	unsigned long mmap_gb = DEFAULT_MMAP_GB;
+	unsigned long mmap_size;
 	struct vfio_group_status group_status = {
 		.argsz = sizeof(group_status)
 	};
@@ -64,12 +66,21 @@ int main(int argc, char **argv)
 		return -1;
 
 	if (argc > 2) {
-		ret = sscanf(argv[2], "%s", mempath);
-		if (ret != 1) {
-			usage(argv[0]);
-			return -1;
-		}
+		char *endp;
+		unsigned long val = strtoul(argv[2], &endp, 0);
+		if (*endp == '\0' && val > 0)
+			guest_gb = val;
+		else
+			strncpy(mempath, argv[2], sizeof(mempath) - 1);
 	}
+
+	if (argc > 3)
+		guest_gb = strtoul(argv[3], NULL, 0);
+	if (guest_gb < mmap_gb)
+		mmap_gb = guest_gb;
+	mmap_size = mmap_gb * 1024 * 1024 * 1024;
+
+	printf("guest_gb=%lu mmap_gb=%lu\n", guest_gb, mmap_gb);
 
 	if (strlen(mempath)) {
 		struct statfs fs;
@@ -92,12 +103,12 @@ int main(int argc, char **argv)
 
 	/* 4G of host memory */
 	if (fd < 0) {
-		vaddr = (unsigned long)mmap(0, MMAP_SIZE,
+		vaddr = (unsigned long)mmap(0, mmap_size,
 					    PROT_READ | PROT_WRITE,
 					    MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
 	} else {
-		ftruncate(fd, MMAP_SIZE);
-		vaddr = (unsigned long)mmap(0, MMAP_SIZE,
+		ftruncate(fd, mmap_size);
+		vaddr = (unsigned long)mmap(0, mmap_size,
 					    PROT_READ | PROT_WRITE,
 					    MAP_POPULATE | MAP_SHARED, fd, 0);
 	}
@@ -138,10 +149,10 @@ int main(int argc, char **argv)
 	/* (1TB - 4G)@4G "high memory" after the I/O hole */
 	printf("Mapping high memory");
 	fflush(stdout);
-	dma_map.size = MMAP_SIZE;
+	dma_map.size = mmap_size;
 	dma_map.iova = 4UL * 1024 * 1024 * 1024;
 	dma_map.vaddr = vaddr;
-	while (dma_map.iova < GUEST_GB * 1024 * 1024 * 1024) {
+	while (dma_map.iova < guest_gb * 1024 * 1024 * 1024) {
 		ret = ioctl(container, VFIO_IOMMU_MAP_DMA, &dma_map);
 		if (ret) {
 			printf("Failed to map memory (%s)\n", strerror(errno));
@@ -149,7 +160,7 @@ int main(int argc, char **argv)
 		}
 		printf(".");
 		fflush(stdout);
-		dma_map.iova += MMAP_SIZE;
+		dma_map.iova += mmap_size;
 	}
 	printf("\n");
 
