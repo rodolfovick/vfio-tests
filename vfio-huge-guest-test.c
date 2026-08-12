@@ -39,7 +39,8 @@ void usage(char *name)
 int main(int argc, char **argv)
 {
 	int ret, container, groupid, fd = -1;
-	char path[PATH_MAX], mempath[PATH_MAX] = "";
+	char path[PATH_MAX + NAME_MAX + sizeof("/.XXXXXX")];
+	char mempath[PATH_MAX] = "";
 	unsigned long vaddr;
 	struct vfio_group_status group_status = {
 		.argsz = sizeof(group_status)
