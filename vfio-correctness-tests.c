@@ -46,6 +46,8 @@ int pagesize_test(int fd, unsigned long vaddr,
 	int ret;
 
 	/* map it */
+	if (verbose)
+		printf("  map forward...\n");
 	for (dma_map.vaddr = vaddr, dma_map.iova = 0;
 	     dma_map.iova < size;
 	     dma_map.iova += pagesize, dma_map.vaddr += pagesize) {
@@ -58,6 +60,8 @@ int pagesize_test(int fd, unsigned long vaddr,
 	}
 
 	/* attempt to remap it */
+	if (verbose)
+		printf("  remap (expect fail)...\n");
 	for (dma_map.vaddr = vaddr, dma_map.iova = 0;
 	     dma_map.iova < size;
 	     dma_map.iova += pagesize, dma_map.vaddr += pagesize) {
@@ -70,6 +74,8 @@ int pagesize_test(int fd, unsigned long vaddr,
 	}
 
 	/* unmap it */
+	if (verbose)
+		printf("  unmap forward...\n");
 	for (dma_unmap.iova = 0;
 	     dma_unmap.iova < size;
 	     dma_unmap.iova += pagesize) {
@@ -82,6 +88,8 @@ int pagesize_test(int fd, unsigned long vaddr,
 	}
 
 	/* attempt to re-unmap it */
+	if (verbose)
+		printf("  re-unmap (expect fail)...\n");
 	for (dma_unmap.iova = 0;
 	     dma_unmap.iova < size;
 	     dma_unmap.iova += pagesize) {
@@ -96,6 +104,8 @@ int pagesize_test(int fd, unsigned long vaddr,
 	dma_unmap.size = pagesize;
 
 	/* map it again, backwards*/
+	if (verbose)
+		printf("  map backward...\n");
 	for (dma_map.vaddr = vaddr + size - pagesize,
 	     dma_map.iova = size - pagesize;
 	     dma_map.iova < size;
@@ -109,6 +119,8 @@ int pagesize_test(int fd, unsigned long vaddr,
 	}
 
 	/* unmap it, backwards */
+	if (verbose)
+		printf("  unmap backward...\n");
 	for (dma_unmap.iova = size - pagesize;
 	     dma_unmap.iova < size;
 	     dma_unmap.iova -= pagesize) {
@@ -121,6 +133,8 @@ int pagesize_test(int fd, unsigned long vaddr,
 	}
 
 	/* map it again, checker board */
+	if (verbose)
+		printf("  map checkerboard...\n");
 	for (dma_map.vaddr = vaddr, dma_map.iova = 0;
 	     dma_map.iova < size;
 	     dma_map.iova += (pagesize * 2), dma_map.vaddr += (pagesize * 2)) {
@@ -143,6 +157,8 @@ int pagesize_test(int fd, unsigned long vaddr,
 	}
 
 	/* unmap it, checker board */
+	if (verbose)
+		printf("  unmap checkerboard...\n");
 	for (dma_unmap.iova = 0;
 	     dma_unmap.iova < size;
 	     dma_unmap.iova += (pagesize * 2)) {
@@ -165,6 +181,8 @@ int pagesize_test(int fd, unsigned long vaddr,
 	}
 
 	/* map it again, backwards checker board */
+	if (verbose)
+		printf("  map backward checkerboard...\n");
 	for (dma_map.vaddr = vaddr + size - pagesize,
 	     dma_map.iova = size - pagesize;
 	     dma_map.iova < size;
@@ -189,6 +207,8 @@ int pagesize_test(int fd, unsigned long vaddr,
 	}
 
 	/* unmap it, backwards checker board */
+	if (verbose)
+		printf("  unmap backward checkerboard...\n");
 	for (dma_unmap.iova = size - pagesize;
 	     dma_unmap.iova < size;
 	     dma_unmap.iova -= (pagesize * 2)) {
