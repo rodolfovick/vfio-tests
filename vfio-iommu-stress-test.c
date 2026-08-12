@@ -11,6 +11,7 @@
 #include <libgen.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
@@ -24,23 +25,24 @@
 #include "utils.h"
 
 #define MAP_SIZE (1UL * 1024 * 1024 * 1024)
-#define MAP_MAX 1024
+#define MAP_MAX_DEFAULT 1024
 #define DMA_CHUNK (2UL * 1024 * 1024)
 
 void usage(char *name)
 {
-	printf("usage: %s ssss:bb:dd.f\n", name);
+	printf("usage: %s ssss:bb:dd.f [map_max]\n", name);
 	printf("\tssss: PCI segment, ex. 0000\n");
 	printf("\tbb:   PCI bus, ex. 01\n");
 	printf("\tdd:   PCI device, ex. 06\n");
 	printf("\tf:    PCI function, ex. 0\n");
+	printf("\tmap_max: number of 1GB IOVA iterations (default 1024)\n");
 }
 
 int main(int argc, char **argv)
 {
 	const char *devname;
 	int container;
- 	unsigned long i, j, vaddr;
+	unsigned long i, j, vaddr, map_max;
 	int ret;
 	struct vfio_group_status group_status = {
 		.argsz = sizeof(group_status)
@@ -58,6 +60,7 @@ int main(int argc, char **argv)
 	}
 
 	devname = argv[1];
+	map_max = argc > 2 ? strtoul(argv[2], NULL, 0) : MAP_MAX_DEFAULT;
 
 	if (vfio_device_attach(devname, &container, NULL, NULL))
 		return -1;
@@ -72,9 +75,10 @@ int main(int argc, char **argv)
 
 	dma_map.flags = VFIO_DMA_MAP_FLAG_READ | VFIO_DMA_MAP_FLAG_WRITE;
 
+	printf("map_max=%lu\n", map_max);
 	printf("Mapping:   0%%");
 	fflush(stdout);
-	for (i = 0; i < MAP_MAX; i++) {
+	for (i = 0; i < map_max; i++) {
 		dma_map.size = DMA_CHUNK;
 
 		if (!(i % 3))
@@ -130,8 +134,8 @@ int main(int argc, char **argv)
 		}
 #endif
 
-		if (((i + 1) * 100)/MAP_MAX != (i * 100)/MAP_MAX) {
-			printf("\b\b\b\b%3ld%%", (i * 100)/MAP_MAX);
+		if (((i + 1) * 100)/map_max != (i * 100)/map_max) {
+			printf("\b\b\b\b%3ld%%", (i * 100)/map_max);
 			fflush(stdout);
 		}
 	}
@@ -139,7 +143,7 @@ int main(int argc, char **argv)
 
 	printf("Unmapping:   0%%");
 	fflush(stdout);
-	for (i = 0; i < MAP_MAX; i++) {
+	for (i = 0; i < map_max; i++) {
 		dma_unmap.size = DMA_CHUNK;
 
 		if (!(i % 3))
@@ -172,8 +176,8 @@ int main(int argc, char **argv)
 		}
 #endif
 
-		if (((i + 1) * 100)/MAP_MAX != (i * 100)/MAP_MAX) {
-			printf("\b\b\b\b%3ld%%", (i * 100)/MAP_MAX);
+		if (((i + 1) * 100)/map_max != (i * 100)/map_max) {
+			printf("\b\b\b\b%3ld%%", (i * 100)/map_max);
 			fflush(stdout);
 		}
 	}
