@@ -17,6 +17,7 @@ TEST_SRCS = \
 	vfio-pci-huge-fault-race.c \
 	iommufd-pci-device-open.c \
 	vfio-pci-device-migration.c \
+	vfio-pci-device-migration-stress.c \
 	vfio-pci-device-map-alignment.c
 
 SHARED_OBJS = $(SHARED_SRCS:.c=.o)
