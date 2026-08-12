@@ -53,7 +53,9 @@ int vfio_device_iommufd_getfd(const char *devname)
 
 	while ((dent = readdir(dir))) {
 		if (!strncmp(dent->d_name, "vfio", 4)) {
-			vfio_path = dent->d_name;
+			snprintf(path, sizeof(path),
+				 "/dev/vfio/devices/%s", dent->d_name);
+			vfio_path = path;
 			break;
 		}
 	}
@@ -64,7 +66,6 @@ int vfio_device_iommufd_getfd(const char *devname)
 		return -1;
 	}
 
-	snprintf(path, sizeof(path), "/dev/vfio/devices/%s", vfio_path);
 	ret = open(path, O_RDWR);
 	if (ret < 0) {
 		printf("Failed to open %s, %d (%s)\n",
