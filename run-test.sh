@@ -32,25 +32,55 @@ map_max=$(( dma_entry_limit / 512 ))
 [ $map_max -lt 4 ] && map_max=4
 echo "DMA entry limit: $dma_entry_limit, page size: ${pagesize} (page map: ${map_size_mb}MB, 2M map: ${map_max} iterations)"
 
-set -x
+pass=0
+fail=0
+skip=0
+failures=""
 
-./vfio-correctness-tests $groupid
+run_test() {
+	echo "--- $1 ---"
+	"$@"
+	rc=$?
+	name=$1
+	if [ $rc -eq 0 ]; then
+		pass=$((pass + 1))
+		echo "PASS: $name"
+	elif [ $rc -eq 77 ]; then
+		skip=$((skip + 1))
+		echo "SKIP: $name"
+	else
+		fail=$((fail + 1))
+		failures="$failures $name"
+		echo "FAIL: $name (exit code $rc)"
+	fi
+	echo ""
+}
+
+run_test ./vfio-correctness-tests $groupid
 
 if [ $is_vf -eq 0 ]; then
-	./vfio-huge-guest-test $groupid
-	./vfio-pci-hot-reset $device
-	./vfio-pci-huge-fault-race $device
+	run_test ./vfio-huge-guest-test $groupid
+	run_test ./vfio-pci-hot-reset $device
+	run_test ./vfio-pci-huge-fault-race $device
 fi
 
-./vfio-iommu-map-unmap $device $map_size_mb 5
-./vfio-iommu-stress-test $device $map_max
+run_test ./vfio-iommu-map-unmap $device $map_size_mb 5
+run_test ./vfio-iommu-stress-test $device $map_max
 
-./vfio-noiommu-pci-device-open $device
-./vfio-pci-device-dma-map $device
-./vfio-pci-device-open $device
-./vfio-pci-device-open-igd $device
-./vfio-pci-device-open-sparse-mmap $device
-./iommufd-pci-device-open $device
-./vfio-pci-device-migration $device
-./vfio-pci-device-migration-stress $device
-./vfio-pci-device-map-alignment $device
+run_test ./vfio-noiommu-pci-device-open $device
+run_test ./vfio-pci-device-dma-map $device
+run_test ./vfio-pci-device-open $device
+run_test ./vfio-pci-device-open-igd $device
+run_test ./vfio-pci-device-open-sparse-mmap $device
+run_test ./iommufd-pci-device-open $device
+run_test ./vfio-pci-device-migration $device
+run_test ./vfio-pci-device-migration-stress $device
+run_test ./vfio-pci-device-map-alignment $device
+
+echo "=== Summary ==="
+total=$((pass + fail + skip))
+echo "$total tests: $pass passed, $fail failed, $skip skipped"
+if [ -n "$failures" ]; then
+	echo "Failures:$failures"
+fi
+exit $fail
