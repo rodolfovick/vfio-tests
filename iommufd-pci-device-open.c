@@ -10,7 +10,6 @@
 #include <errno.h>
 #include <libgen.h>
 #include <fcntl.h>
-#include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -149,16 +148,16 @@ int main(int argc, char **argv)
         printf("Attached IOMMUFD %d ioas %d hwpt %d\n", iommufd, alloc_data.out_ioas_id, attach_data.pt_id);
 
         /* Allocate some space and setup a DMA mapping */
-        map.user_va = (int64_t)mmap(0, 1024 * 1024, PROT_READ | PROT_WRITE,
+        map.user_va = (__u64)mmap(0, 1024 * 1024, PROT_READ | PROT_WRITE,
                 MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
         map.iova = 0; /* 1MB starting at 0x0 from device view */
         map.length = 1024 * 1024;
-        map.ioas_id = alloc_data.out_ioas_id;;
+        map.ioas_id = alloc_data.out_ioas_id;
 
         ret = ioctl(iommufd, IOMMU_IOAS_MAP, &map);
         if (ret < 0) {
-                printf("Failed VFIO_DEVICE_ATTACH_IOMMUFD_PT ioas_id %d %d (%s)\n",
-                       attach_data.pt_id, ret, strerror(errno));
+                printf("Failed IOMMU_IOAS_MAP ioas_id %d %d (%s)\n",
+                       map.ioas_id, ret, strerror(errno));
                 return ret;
         }
         printf("Mapped user_va %llx size %llx to iova %llx in ioas %d\n", map.user_va, map.length, map.iova, map.ioas_id);
@@ -245,12 +244,7 @@ int main(int argc, char **argv)
 
         /* Bus reset! */
         ret = ioctl(device, VFIO_DEVICE_PCI_HOT_RESET, reset);
-
-        ret = ioctl(device, VFIO_DEVICE_PCI_HOT_RESET, reset);
         printf("Hot reset: %s\n", ret ? "Failed" : "Pass");
-
-        printf("Press any key to exit\n");
-        fgetc(stdin);
 
         return 0;
 }
