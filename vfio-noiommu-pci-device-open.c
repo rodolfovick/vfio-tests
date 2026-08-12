@@ -88,8 +88,5 @@ int main(int argc, char **argv)
 	}
 
 	printf("Success\n");
-	printf("Press any key to exit\n");
-	fgetc(stdin);
-
 	return 0;
 }
