@@ -91,7 +91,7 @@ int main(int argc, char **argv)
 
 	if (argc < 2) {
 		usage(argv[0]);
-		return -EINVAL;
+		return 1;
 	}
 
 	devname = argv[1];
@@ -108,13 +108,13 @@ int main(int argc, char **argv)
 	if (ret) {
 		printf("VFIO_DEVICE_GET_INFO failed: %d (%s)\n",
 		       ret, strerror(errno));
-		return errno;
+		return 1;
 	}
 
 	if (!(device_info.flags & VFIO_DEVICE_FLAGS_PCI) ||
 		device_info.num_regions < VFIO_PCI_BAR5_REGION_INDEX) {
 		printf("Invalid vfio-pci device\n");
-		return -ENODEV;
+		return 1;
 	}
 
 	printf("Running tests, if progress dots stop or system generates errors, the test has failed\n");
@@ -126,7 +126,7 @@ int main(int argc, char **argv)
 			if (ret) {
 				printf("VFIO_DEVICE_GET_REGION_INFO failed for region %d: %d (%s)\n",
 					   region_info.index, ret, strerror(errno));
-				return errno;
+				return 1;
 			}
 
 			if (!(region_info.flags & VFIO_REGION_INFO_FLAG_MMAP) ||
