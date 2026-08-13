@@ -100,7 +100,7 @@ int main(int argc, char **argv)
 					device, (off_t)region_info.offset, 1UL << min_align);
 			if (map == MAP_FAILED) {
 				printf("mmap failed: %s\n", strerror(errno));
-				return - 1;
+				return 1;
 			}
 			munmap(map, (size_t)region_info.size);
 			if (__builtin_ctzll((unsigned long long)map) < min_align) {
@@ -138,7 +138,7 @@ int main(int argc, char **argv)
 					device, (off_t)region_info.offset + offset, 1UL << req_align);
 			if (map == MAP_FAILED) {
 				printf("mmap failed: offset %lx, %s\n", offset, strerror(errno));
-				return - 1;
+				return 1;
 			}
 			munmap(map, size);
 			if (__builtin_ctzll((unsigned long long)map) < req_align) {
@@ -175,7 +175,7 @@ int main(int argc, char **argv)
 					device, (off_t)region_info.offset, 1UL << req_align);
 			if (map == MAP_FAILED) {
 				printf("mmap failed: size %lx, %s\n", size, strerror(errno));
-				return - 1;
+				return 1;
 			}
 			munmap(map, size);
 			if (__builtin_ctzll((unsigned long long)map) < req_align) {

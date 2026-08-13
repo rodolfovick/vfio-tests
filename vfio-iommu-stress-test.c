@@ -89,7 +89,7 @@ int main(int argc, char **argv)
 			if (ret) {
 				printf("Failed to map memory %ld/%ld (%s)\n",
 				       i, j, strerror(errno));
-				return ret;
+				return 1;
 			}
 		}
 
@@ -102,7 +102,7 @@ int main(int argc, char **argv)
 			if (ret) {
 				printf("Failed to map memory %ld/%ld (%s)\n",
 				       i, j, strerror(errno));
-				return ret;
+				return 1;
 			}
 		}
 
@@ -114,7 +114,7 @@ int main(int argc, char **argv)
 			if (ret) {
 				printf("Failed to map memory %ld/%ld (%s)\n",
 				       i, j, strerror(errno));
-				return ret;
+				return 1;
 			}
 		}
 
@@ -126,7 +126,7 @@ int main(int argc, char **argv)
 			if (ret) {
 				printf("Failed to map memory %ld/%ld (%s)\n",
 				       i, j, strerror(errno));
-				return ret;
+				return 1;
 			}
 		}
 #endif
@@ -154,7 +154,7 @@ int main(int argc, char **argv)
 			if (ret) {
 				printf("Failed to unmap memory %ld/%ld (%s)\n",
 				       i, j, strerror(errno));
-				return ret;
+				return 1;
 			}
 		}
 
@@ -168,7 +168,7 @@ int main(int argc, char **argv)
 			if (ret) {
 				printf("Failed to unmap memory %ld/%ld (%s)\n",
 				       i, j, strerror(errno));
-				return ret;
+				return 1;
 			}
 		}
 #endif

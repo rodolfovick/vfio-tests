@@ -128,7 +128,7 @@ int main(int argc, char **argv)
 	ret = ioctl(container, VFIO_IOMMU_MAP_DMA, &dma_map);
 	if (ret) {
 		printf("Failed to map memory (%s)\n", strerror(errno));
-		return ret;
+		return 1;
 	}
 	printf(".\n");
 
@@ -141,7 +141,7 @@ int main(int argc, char **argv)
 	ret = ioctl(container, VFIO_IOMMU_MAP_DMA, &dma_map);
 	if (ret) {
 		printf("Failed to map memory (%s)\n", strerror(errno));
-		return ret;
+		return 1;
 	}
 	printf(".\n");
 
@@ -155,7 +155,7 @@ int main(int argc, char **argv)
 		ret = ioctl(container, VFIO_IOMMU_MAP_DMA, &dma_map);
 		if (ret) {
 			printf("Failed to map memory (%s)\n", strerror(errno));
-			return ret;
+			return 1;
 		}
 		printf(".");
 		fflush(stdout);

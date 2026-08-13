@@ -117,7 +117,7 @@ int main(int argc, char **argv)
 			if (ret) {
 				printf("Failed to map memory (%s)\n",
 					strerror(errno));
-				return ret;
+				return 1;
 			}
 		}
 
@@ -128,7 +128,7 @@ int main(int argc, char **argv)
 		ret = ioctl(container, VFIO_IOMMU_UNMAP_DMA, &dma_unmap);
 		if (ret) {
 			printf("Failed to unmap memory (%s)\n", strerror(errno));
-			return ret;
+			return 1;
 		}
 
 		printf("-");
