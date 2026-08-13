@@ -176,7 +176,7 @@ int main(int argc, char **argv)
 
 	if (!migration_supported(devfd)) {
 		printf("migration not supported\n");
-		ret = 0;
+		ret = EXIT_SKIP;
 		goto out;
 	}
 	printf("migration: supported\n");
