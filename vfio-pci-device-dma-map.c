@@ -119,9 +119,14 @@ int main(int argc, char **argv)
 		region_info.index = i;
 		ret = ioctl(device, VFIO_DEVICE_GET_REGION_INFO, &region_info);
 		if (ret) {
+			if (i == VFIO_PCI_VGA_REGION_INDEX &&
+			    !vfio_pci_is_vga(devname)) {
+				printf("not available (non-VGA device)\n");
+				continue;
+			}
 			printf("VFIO_DEVICE_GET_REGION_INFO failed for region %d: %d (%s)\n",
 			       region_info.index, ret, strerror(errno));
-			continue;
+			return -1;
 		}
 
 		printf("size 0x%lx, offset 0x%lx, flags 0x%x\n",

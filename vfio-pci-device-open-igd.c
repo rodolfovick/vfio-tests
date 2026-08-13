@@ -47,6 +47,16 @@ int main(int argc, char **argv)
 
 	devname = argv[1];
 
+	if (!vfio_pci_is_vga(devname)) {
+		printf("Skipping: %s is not a VGA device\n", devname);
+		return 77;
+	}
+
+	if (vfio_pci_vendor(devname) != 0x8086) {
+		printf("Skipping: %s is not an Intel device\n", devname);
+		return 77;
+	}
+
 	if (vfio_device_attach(devname, &container, &device, NULL))
 		return -1;
 
@@ -68,8 +78,8 @@ int main(int argc, char **argv)
 		printf("Region %d: ", i);
 		region_info.index = i;
 		if (ioctl(device, VFIO_DEVICE_GET_REGION_INFO, &region_info)) {
-			printf("Failed to get info\n");
-			continue;
+			printf("Failed to get info (%s)\n", strerror(errno));
+			return -1;
 		}
 
 		printf("size 0x%lx, offset 0x%lx, flags 0x%x\n",

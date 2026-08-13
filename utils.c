@@ -55,6 +55,38 @@ int vfio_pci_is_vf(const char *devname)
 	return !access(path, F_OK);
 }
 
+int vfio_pci_is_vga(const char *devname)
+{
+	char path[PATH_MAX];
+	FILE *f;
+	unsigned int class = 0;
+
+	snprintf(path, sizeof(path),
+		 "/sys/bus/pci/devices/%s/class", devname);
+	f = fopen(path, "r");
+	if (!f)
+		return 0;
+	fscanf(f, "%x", &class);
+	fclose(f);
+	return (class >> 8) == 0x0300;
+}
+
+unsigned int vfio_pci_vendor(const char *devname)
+{
+	char path[PATH_MAX];
+	FILE *f;
+	unsigned int vendor = 0;
+
+	snprintf(path, sizeof(path),
+		 "/sys/bus/pci/devices/%s/vendor", devname);
+	f = fopen(path, "r");
+	if (!f)
+		return 0;
+	fscanf(f, "%x", &vendor);
+	fclose(f);
+	return vendor;
+}
+
 int vfio_device_iommufd_getfd(const char *devname)
 {
 	int  domain, bus, dev, func;
