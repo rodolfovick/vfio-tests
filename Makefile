@@ -48,6 +48,12 @@ check:
 	./run-test.sh $(DEVICE)
 
 archive:
-	tar -czvf $(ARCHIVE_NAME).tar.gz Makefile $(SHARED_SRCS) $(TEST_SRCS) $(HEADERS)
+	tar -czvf $(ARCHIVE_NAME).tar.gz Makefile $(SHARED_SRCS) $(TEST_SRCS) $(HEADERS) run-test.sh
+
+bindist: all
+	mkdir -p $(ARCHIVE_NAME)
+	cp $(TEST_BINS) run-test.sh $(ARCHIVE_NAME)/
+	tar -czvf $(ARCHIVE_NAME)-bin.tar.gz $(ARCHIVE_NAME)/
+	rm -rf $(ARCHIVE_NAME)
 
 .PRECIOUS: $(TEST_BINS)
