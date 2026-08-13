@@ -4,6 +4,19 @@ me=${0##*/}
 
 device=${1:-"0000:08:10.0"}
 
+sysdev=/sys/bus/pci/devices/$device
+
+if [ ! -e "$sysdev" ]; then
+    echo "$me: device $device not found"
+    exit 1
+fi
+
+if [ ! -d "$sysdev/vfio-dev" ]; then
+    driver=$(basename $(readlink "$sysdev/driver" 2>/dev/null) 2>/dev/null)
+    echo "$me: device $device is not bound to a vfio driver (driver: ${driver:-none})"
+    exit 1
+fi
+
 detect_iommu() {
     # IOMMU address space size from CAP register (MGAW field, bits 21:16)
     iommu_cap=$(cat /sys/bus/pci/devices/$device/iommu/intel-iommu/cap 2>/dev/null)
