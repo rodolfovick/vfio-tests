@@ -79,7 +79,7 @@ int main(int argc, char **argv)
         if (iommufd < 0) {
                 printf("Failed to open /dev/iommufd, %d (%s)\n",
                        iommufd, strerror(errno));
-                return iommufd;
+                return 1;
         }
 
         bind.iommufd = iommufd; // negative value means vfio-noiommu mode
@@ -87,7 +87,7 @@ int main(int argc, char **argv)
         if (ret < 0) {
                 printf("Failed VFIO_DEVICE_BIND_IOMMUFD %d (%s)\n",
                        ret, strerror(errno));
-                return ret;
+                return 1;
         }
 
         printf("Bind to IOMMUFD %d with dev_id %d\n", iommufd, bind.out_devid);
@@ -136,7 +136,7 @@ int main(int argc, char **argv)
         if (ret < 0) {
                 printf("Failed IOMMU_IOAS_ALLOC %d (%s)\n",
                        ret, strerror(errno));
-                return ret;
+                return 1;
         }
 
         attach_data.pt_id = alloc_data.out_ioas_id;
@@ -144,7 +144,7 @@ int main(int argc, char **argv)
         if (ret < 0) {
                 printf("Failed VFIO_DEVICE_ATTACH_IOMMUFD_PT ioas_id %d %d (%s)\n",
                        attach_data.pt_id, ret, strerror(errno));
-                return ret;
+                return 1;
         }
 
         printf("Attached IOMMUFD %d ioas %d hwpt %d\n", iommufd, alloc_data.out_ioas_id, attach_data.pt_id);
@@ -160,7 +160,7 @@ int main(int argc, char **argv)
         if (ret < 0) {
                 printf("Failed IOMMU_IOAS_MAP ioas_id %d %d (%s)\n",
                        map.ioas_id, ret, strerror(errno));
-                return ret;
+                return 1;
         }
         printf("Mapped user_va %llx size %llx to iova %llx in ioas %d\n", map.user_va, map.length, map.iova, map.ioas_id);
 
@@ -176,7 +176,7 @@ int main(int argc, char **argv)
         reset_info = malloc(sizeof(*reset_info));
         if (!reset_info) {
                 printf("Failed to alloc info struct\n");
-                return -ENOMEM;
+                return 1;
         }
 
         reset_info->argsz = sizeof(*reset_info);
@@ -197,7 +197,7 @@ int main(int argc, char **argv)
                         (reset_info->count * sizeof(*devices)));
         if (!reset_info) {
                 printf("Failed to re-alloc info struct\n");
-                return -ENOMEM;
+                return 1;
         }
 
         reset_info->argsz = sizeof(*reset_info) +
@@ -205,7 +205,7 @@ int main(int argc, char **argv)
         ret = ioctl(device, VFIO_DEVICE_GET_PCI_HOT_RESET_INFO, reset_info);
         if (ret) {
                 printf("Reset Info error\n");
-                return ret;
+                return 1;
         }
 
         devices = &reset_info->devices[0];

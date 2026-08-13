@@ -63,7 +63,7 @@ int main(int argc, char **argv)
 	reset_info = malloc(sizeof(*reset_info));
 	if (!reset_info) {
 		printf("Failed to alloc info struct\n");
-		return -ENOMEM;
+		return 1;
 	}
 
 	reset_info->argsz = sizeof(*reset_info);
@@ -84,7 +84,7 @@ int main(int argc, char **argv)
 			     (reset_info->count * sizeof(*devices)));
 	if (!reset_info) {
 		printf("Failed to re-alloc info struct\n");
-		return -ENOMEM;
+		return 1;
 	}
 
 	reset_info->argsz = sizeof(*reset_info) +
@@ -92,7 +92,7 @@ int main(int argc, char **argv)
 	ret = ioctl(device, VFIO_DEVICE_GET_PCI_HOT_RESET_INFO, reset_info);
 	if (ret) {
 		printf("Reset Info error\n");
-		return ret;
+		return 1;
 	}
 
 	devices = &reset_info->devices[0];
@@ -125,5 +125,5 @@ int main(int argc, char **argv)
 	ret = ioctl(device, VFIO_DEVICE_PCI_HOT_RESET, reset);
 	printf("%s\n", ret ? "Failed" : "Pass");
 
-	return ret;
+	return ret ? 1 : 0;
 }
