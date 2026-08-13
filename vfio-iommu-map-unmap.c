@@ -37,9 +37,6 @@ int main(int argc, char **argv)
 	int ret, container;
 	unsigned long i, count, map_size, max_cycles, nr_chunks;
 	void **maps;
-	struct vfio_group_status group_status = {
-		.argsz = sizeof(group_status)
-	};
 	struct vfio_iommu_type1_dma_map dma_map = {
 		.argsz = sizeof(dma_map)
 	};

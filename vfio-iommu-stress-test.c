@@ -44,9 +44,6 @@ int main(int argc, char **argv)
 	int container;
 	unsigned long i, j, vaddr, map_max;
 	int ret;
-	struct vfio_group_status group_status = {
-		.argsz = sizeof(group_status)
-	};
 	struct vfio_iommu_type1_dma_map dma_map = {
 		.argsz = sizeof(dma_map)
 	};
