@@ -52,6 +52,11 @@ int main(int argc, char **argv)
 
 	devname = argv[1];
 
+	if (vfio_pci_is_vf(devname)) {
+		printf("Skipping: %s is a VF\n", devname);
+		return 77;
+	}
+
 	if (vfio_device_attach(devname, &container, &device, &group))
 		return -1;
 

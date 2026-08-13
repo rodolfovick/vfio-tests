@@ -46,6 +46,15 @@ void hexdump(const void *data, size_t len)
 	printf("\n");
 }
 
+int vfio_pci_is_vf(const char *devname)
+{
+	char path[PATH_MAX];
+
+	snprintf(path, sizeof(path),
+		 "/sys/bus/pci/devices/%s/physfn", devname);
+	return !access(path, F_OK);
+}
+
 int vfio_device_iommufd_getfd(const char *devname)
 {
 	int  domain, bus, dev, func;

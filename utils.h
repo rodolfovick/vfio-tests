@@ -36,6 +36,7 @@ static inline unsigned long now_nsec(void)
 }
 
 void hexdump(const void *data, size_t len);
+int vfio_pci_is_vf(const char *devname);
 
 void *mmap_align(void *addr, size_t length, int prot, int flags,
 		 int fd, off_t offset, size_t align);
