@@ -140,10 +140,8 @@ int main(int argc, char **argv)
 			break;
 		}
 
-		if (region == VFIO_PCI_ROM_REGION_INDEX) {
-			printf("No BAR found for %ldMB test\n", *pgsize >> 20);
-			return -ENODEV;
-		}
+		if (region == VFIO_PCI_ROM_REGION_INDEX)
+			printf("No BAR found for %ldMB test, skipping\n", *pgsize >> 20);
 	}
 
 	printf("Check dmesg, if there are any VM_FAULT_OOM messages, the test has failed\n");
