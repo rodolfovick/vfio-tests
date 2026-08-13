@@ -167,6 +167,12 @@ int main(int argc, char **argv)
         struct vfio_pci_hot_reset_info *reset_info;
         struct vfio_pci_dependent_device *devices;
         struct vfio_pci_hot_reset *reset;
+
+        if (vfio_pci_is_vf(devname)) {
+                printf("Skipping hot reset (VF)\n");
+                return 0;
+        }
+
         reset_info = malloc(sizeof(*reset_info));
         if (!reset_info) {
                 printf("Failed to alloc info struct\n");
