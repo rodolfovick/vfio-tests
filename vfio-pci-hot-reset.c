@@ -97,11 +97,18 @@ int main(int argc, char **argv)
 
 	devices = &reset_info->devices[0];
 
-	for (i = 0; i < reset_info->count; i++)
+	for (i = 0; i < reset_info->count; i++) {
 		printf("%d: %04x:%02x:%02x.%d group %d\n", i,
 		       devices[i].segment, devices[i].bus,
 		       devices[i].devfn >> 3, devices[i].devfn & 7,
 		       devices[i].group_id);
+		if (devices[i].group_id != devices[0].group_id) {
+			printf("Skipping: reset domain spans IOMMU groups %d and %d\n",
+			       devices[0].group_id, devices[i].group_id);
+			printf("All groups in the reset domain must be owned to perform hot reset\n");
+			return 77;
+		}
+	}
 
 	printf("Attempting reset: ");
 	fflush(stdout);

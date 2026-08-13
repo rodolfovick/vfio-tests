@@ -210,11 +210,15 @@ int main(int argc, char **argv)
 
         devices = &reset_info->devices[0];
 
-        for (i = 0; i < reset_info->count; i++)
-                printf("%d: %04x:%02x:%02x.%d devid %d\n", i,
+        for (i = 0; i < reset_info->count; i++) {
+                printf("%d: %04x:%02x:%02x.%d devid ", i,
                                 devices[i].segment, devices[i].bus,
-                                devices[i].devfn >> 3, devices[i].devfn & 7,
-                                devices[i].devid);
+                                devices[i].devfn >> 3, devices[i].devfn & 7);
+                if (devices[i].devid == VFIO_PCI_DEVID_NOT_OWNED)
+                        printf("not owned\n");
+                else
+                        printf("%d\n", devices[i].devid);
+        }
 
         if (!(reset_info->flags & VFIO_PCI_HOT_RESET_FLAG_DEV_ID)) {
                 printf("VFIO_PCI_HOT_RESET_FLAG_DEV_ID should be set for IOMMUFD\n");
@@ -239,6 +243,8 @@ int main(int argc, char **argv)
                                 "no VFIO_PCI_DEVID_NOT_OWNED\n");
                         return -1;
                 }
+                printf("Skipping hot reset: reset domain has unowned devices\n");
+                printf("All devices in the reset domain must be owned to perform hot reset\n");
                 return 0;
         }
 
