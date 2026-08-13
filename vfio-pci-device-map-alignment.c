@@ -96,8 +96,8 @@ int main(int argc, char **argv)
 
 		printf("Testing BAR%d, require at least %d bit alignment\n", i, min_align);
 		for (j = 0; j < LOOPS; j++) {
-			map = mmap(NULL, (size_t)region_info.size, PROT_READ | PROT_WRITE, MAP_SHARED,
-					device, (off_t)region_info.offset);
+			map = mmap_align(NULL, (size_t)region_info.size, PROT_READ | PROT_WRITE, MAP_SHARED,
+					device, (off_t)region_info.offset, 1UL << min_align);
 			if (map == MAP_FAILED) {
 				printf("mmap failed: %s\n", strerror(errno));
 				return - 1;
@@ -134,8 +134,8 @@ int main(int argc, char **argv)
 			else
 				req_align = 12;
 
-			map = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED,
-					device, (off_t)region_info.offset + offset);
+			map = mmap_align(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED,
+					device, (off_t)region_info.offset + offset, 1UL << req_align);
 			if (map == MAP_FAILED) {
 				printf("mmap failed: offset %lx, %s\n", offset, strerror(errno));
 				return - 1;
@@ -171,8 +171,8 @@ int main(int argc, char **argv)
 			else
 				req_align = 30;
 
-			map = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED,
-					device, (off_t)region_info.offset);
+			map = mmap_align(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED,
+					device, (off_t)region_info.offset, 1UL << req_align);
 			if (map == MAP_FAILED) {
 				printf("mmap failed: size %lx, %s\n", size, strerror(errno));
 				return - 1;
