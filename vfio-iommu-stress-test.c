@@ -180,5 +180,6 @@ int main(int argc, char **argv)
 	}
 	printf("\b\b\b\b100%%\n");
 
+	printf("Success\n");
 	return 0;
 }

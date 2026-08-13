@@ -135,5 +135,6 @@ int main(int argc, char **argv)
 		fflush(stdout);
 	}
 
+	printf("\nSuccess\n");
 	return 0;
 }
