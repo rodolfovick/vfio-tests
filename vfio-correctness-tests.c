@@ -391,7 +391,7 @@ int main(int argc, char **argv)
 					    MAP_POPULATE | MAP_SHARED, fd, 0);
 	}
 
-	if (!vaddr) {
+	if ((void *)vaddr == MAP_FAILED) {
 		printf("Failed to allocate memory\n");
 		return -1;
 	}
