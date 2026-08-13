@@ -54,7 +54,7 @@ int main(int argc, char **argv)
 
 	if (vfio_pci_is_vf(devname)) {
 		printf("Skipping: %s is a VF\n", devname);
-		return 77;
+		return EXIT_SKIP;
 	}
 
 	if (vfio_device_attach(devname, &container, &device, &group))
@@ -106,7 +106,7 @@ int main(int argc, char **argv)
 			printf("Skipping: reset domain spans IOMMU groups %d and %d\n",
 			       devices[0].group_id, devices[i].group_id);
 			printf("All groups in the reset domain must be owned to perform hot reset\n");
-			return 77;
+			return EXIT_SKIP;
 		}
 	}
 

@@ -43,6 +43,8 @@ unsigned int vfio_pci_vendor(const char *devname);
 void *mmap_align(void *addr, size_t length, int prot, int flags,
 		 int fd, off_t offset, size_t align);
 
+#define EXIT_SKIP 77
+
 #define DIV_ROUND_UP(n, d) (((n) + (d) - 1) / (d))
 
 #endif /* VFIO_TESTSUITE_UTILS_H */

@@ -49,12 +49,12 @@ int main(int argc, char **argv)
 
 	if (!vfio_pci_is_vga(devname)) {
 		printf("Skipping: %s is not a VGA device\n", devname);
-		return 77;
+		return EXIT_SKIP;
 	}
 
 	if (vfio_pci_vendor(devname) != 0x8086) {
 		printf("Skipping: %s is not an Intel device\n", devname);
-		return 77;
+		return EXIT_SKIP;
 	}
 
 	if (vfio_device_attach(devname, &container, &device, NULL))
