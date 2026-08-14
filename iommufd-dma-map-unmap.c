@@ -27,14 +27,14 @@
 
 void usage(char *name)
 {
-	printf("usage: %s <ssss:bb:dd.f> [map_size_mb] [max_cycles]\n", name);
+	printf("usage: %s <ssss:bb:dd.f> [map_size_mb] [max_cycles] [stride_kb]\n", name);
 }
 
 int main(int argc, char **argv)
 {
 	const char *devname;
 	int ret, device, iommufd, ioas_id;
-	unsigned long i, count, map_size, max_cycles, nr_chunks;
+	unsigned long i, count, map_size, max_cycles, nr_chunks, stride;
 	long slab_before;
 	void **maps;
 
@@ -57,6 +57,7 @@ int main(int argc, char **argv)
 	map_size = argc > 2 ? strtoul(argv[2], NULL, 0) * 1024 * 1024
 			    : MAP_SIZE_DEFAULT;
 	max_cycles = argc > 3 ? strtoul(argv[3], NULL, 0) : MAX_CYCLES_DEFAULT;
+	stride = argc > 4 ? strtoul(argv[4], NULL, 0) * 1024 : MAP_CHUNK;
 	nr_chunks = map_size / MAP_CHUNK;
 
 	iommufd = open("/dev/iommu", O_RDWR);
@@ -68,8 +69,11 @@ int main(int argc, char **argv)
 	if (vfio_device_iommufd_attach(iommufd, devname, &device, &ioas_id))
 		return 1;
 
-	printf("map_size=%luMB dma_size=%luKB max_cycles=%lu\n",
+	char range_buf[16];
+
+	printf("map_size=%luMB dma_size=%luKB stride=%luKB iova_range=%s max_cycles=%lu\n",
 	       map_size / (1024 * 1024), (unsigned long)MAP_CHUNK / 1024,
+	       stride / 1024, size_str(nr_chunks * stride, range_buf, sizeof(range_buf)),
 	       max_cycles);
 
 	maps = malloc(sizeof(void *) * nr_chunks);
@@ -102,12 +106,14 @@ int main(int argc, char **argv)
 			}
 
 			map.user_va = (__u64)maps[i];
-			map.iova = i * MAP_CHUNK;
+			map.iova = i * stride;
 
 			ret = ioctl(iommufd, IOMMU_IOAS_MAP, &map);
 			if (ret) {
+				if (errno == EINVAL && stride > MAP_CHUNK)
+					continue;
 				printf("IOMMU_IOAS_MAP iova=0x%lx failed: %s\n",
-				       i * MAP_CHUNK, strerror(errno));
+				       i * stride, strerror(errno));
 				return 1;
 			}
 		}
@@ -117,13 +123,13 @@ int main(int argc, char **argv)
 
 		/* Unmap each chunk individually */
 		for (i = 0; i < nr_chunks; i++) {
-			unmap.iova = i * MAP_CHUNK;
+			unmap.iova = i * stride;
 			unmap.length = MAP_CHUNK;
 
 			ret = ioctl(iommufd, IOMMU_IOAS_UNMAP, &unmap);
-			if (ret) {
+			if (ret && errno != ENOENT) {
 				printf("IOMMU_IOAS_UNMAP iova=0x%lx failed: %s\n",
-				       i * MAP_CHUNK, strerror(errno));
+				       i * stride, strerror(errno));
 				return 1;
 			}
 		}
@@ -137,12 +143,14 @@ int main(int argc, char **argv)
 
 	for (i = 0; i < nr_chunks; i++) {
 		map.user_va = (__u64)maps[i];
-		map.iova = i * MAP_CHUNK;
+		map.iova = i * stride;
 
 		ret = ioctl(iommufd, IOMMU_IOAS_MAP, &map);
 		if (ret) {
+			if (errno == EINVAL && stride > MAP_CHUNK)
+				continue;
 			printf("IOMMU_IOAS_MAP (bulk) iova=0x%lx failed: %s\n",
-			       i * MAP_CHUNK, strerror(errno));
+			       i * stride, strerror(errno));
 			return 1;
 		}
 	}
@@ -154,7 +162,7 @@ int main(int argc, char **argv)
 	       (slab_sunreclaim_kb() - slab_before) / 1024);
 
 	unmap.iova = 0;
-	unmap.length = map_size;
+	unmap.length = nr_chunks * stride;
 	ret = ioctl(iommufd, IOMMU_IOAS_UNMAP, &unmap);
 	if (ret) {
 		printf("IOMMU_IOAS_UNMAP (bulk) failed: %s\n", strerror(errno));
@@ -169,6 +177,6 @@ int main(int argc, char **argv)
 	}
 	free(maps);
 
-	printf("\nSuccess\n");
+	printf("\n%lu mappings, Success\n", nr_chunks);
 	return 0;
 }

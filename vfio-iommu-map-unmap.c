@@ -22,20 +22,21 @@
 
 void usage(char *name)
 {
-	printf("usage: %s ssss:bb:dd.f [map_size_mb] [max_cycles]\n", name);
+	printf("usage: %s ssss:bb:dd.f [map_size_mb] [max_cycles] [stride_kb]\n", name);
 	printf("\tssss: PCI segment, ex. 0000\n");
 	printf("\tbb:   PCI bus, ex. 01\n");
 	printf("\tdd:   PCI device, ex. 06\n");
 	printf("\tf:    PCI function, ex. 0\n");
 	printf("\tmap_size_mb: IOVA range in MB (default 1024)\n");
 	printf("\tmax_cycles:  stop after N cycles, 0 = infinite (default 0)\n");
+	printf("\tstride_kb:   IOVA stride in KB (default 4)\n");
 }
 
 int main(int argc, char **argv)
 {
 	const char *devname;
 	int ret, container;
-	unsigned long i, count, map_size, max_cycles, nr_chunks;
+	unsigned long i, count, map_size, max_cycles, nr_chunks, stride;
 	long slab_before;
 	void **maps;
 	struct vfio_iommu_type1_dma_map dma_map = {
@@ -54,19 +55,23 @@ int main(int argc, char **argv)
 	map_size = argc > 2 ? strtoul(argv[2], NULL, 0) * 1024 * 1024
 			    : MAP_SIZE_DEFAULT;
 	max_cycles = argc > 3 ? strtoul(argv[3], NULL, 0) : MAX_CYCLES_DEFAULT;
+	stride = argc > 4 ? strtoul(argv[4], NULL, 0) * 1024 : MAP_CHUNK;
 	nr_chunks = map_size / MAP_CHUNK;
 
 	if (vfio_device_attach(devname, &container, NULL, NULL))
 		return -1;
 
-	printf("map_size=%luMB dma_size=%luKB max_cycles=%lu\n",
+	char range_buf[16];
+
+	printf("map_size=%luMB dma_size=%luKB stride=%luKB iova_range=%s max_cycles=%lu\n",
 	       map_size / (1024 * 1024), (unsigned long)MAP_CHUNK / 1024,
+	       stride / 1024, size_str(nr_chunks * stride, range_buf, sizeof(range_buf)),
 	       max_cycles);
 
 	/* Test code */
 	dma_map.flags = VFIO_DMA_MAP_FLAG_READ | VFIO_DMA_MAP_FLAG_WRITE;
 	dma_map.size = MAP_CHUNK;
-	dma_unmap.size = map_size;
+	dma_unmap.size = nr_chunks * stride;
 	dma_unmap.iova = 0;
 
 	/* Track our mmaps for re-use */
@@ -100,7 +105,7 @@ int main(int argc, char **argv)
 			slab_before = slab_sunreclaim_kb();
 
 		/* Map MAP_CHUNK at a time, each chunk is pinned on map, so THP can't do anything until unmap */
-		for (i = dma_map.iova = 0; i < nr_chunks; i++, dma_map.iova += dma_map.size) {
+		for (i = dma_map.iova = 0; i < nr_chunks; i++, dma_map.iova += stride) {
 			if (!maps[i]) {
 				maps[i] = mmap(NULL, dma_map.size,
 						PROT_READ | PROT_WRITE,
@@ -120,6 +125,8 @@ int main(int argc, char **argv)
 
 			ret = ioctl(container, VFIO_IOMMU_MAP_DMA, &dma_map);
 			if (ret) {
+				if (errno == EINVAL && stride > MAP_CHUNK)
+					continue;
 				printf("Failed to map memory (%s)\n",
 					strerror(errno));
 				return 1;
@@ -144,6 +151,6 @@ int main(int argc, char **argv)
 		fflush(stdout);
 	}
 
-	printf("\nSuccess\n");
+	printf("\n%lu mappings, Success\n", nr_chunks);
 	return 0;
 }

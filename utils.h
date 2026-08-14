@@ -56,7 +56,9 @@ void *mmap_align(void *addr, size_t length, int prot, int flags,
 
 static inline const char *size_str(unsigned long size, char *buf, size_t len)
 {
-	if (size >= (1ul << 30) && !(size & ((1ul << 30) - 1)))
+	if (size >= (1ul << 40) && !(size & ((1ul << 40) - 1)))
+		snprintf(buf, len, "%ldTB", size >> 40);
+	else if (size >= (1ul << 30) && !(size & ((1ul << 30) - 1)))
 		snprintf(buf, len, "%ldGB", size >> 30);
 	else if (size >= (1ul << 20) && !(size & ((1ul << 20) - 1)))
 		snprintf(buf, len, "%ldMB", size >> 20);
