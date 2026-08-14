@@ -33,6 +33,7 @@ Set `VFIO_VERBOSE=1` for detailed output.
 | `vfio-pci-device-open-igd` | Intel IGD-specific open |
 | `vfio-noiommu-pci-device-open` | No-IOMMU mode |
 | `iommufd-pci-device-open` | Device open (IOMMUFD cdev API) |
+| `iommufd-dmabuf` | DMA-BUF export and P2P mapping (IOMMUFD) |
 | `vfio-pci-device-dma-map` | DMA mapping basics |
 | `vfio-pci-device-map-alignment` | BAR mmap alignment |
 | `vfio-pci-bar-fault-timing` | BAR fault timing (PTE/PMD/PUD) |

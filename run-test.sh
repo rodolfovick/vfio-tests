@@ -87,6 +87,9 @@ run_test ./iommufd-pci-device-open $device
 # DMA mapping (iommufd)
 run_test ./iommufd-dma-map-unmap $device $map_size_mb 5
 
+# DMA-BUF export (iommufd)
+run_test ./iommufd-dmabuf $device
+
 # DMA mapping
 run_test ./vfio-pci-device-dma-map $device
 run_test ./vfio-pci-device-map-alignment $device

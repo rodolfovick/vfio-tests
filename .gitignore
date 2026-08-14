@@ -14,6 +14,7 @@ vfio-pci-device-open-sparse-mmap
 vfio-pci-hot-reset
 iommufd-pci-device-open
 iommufd-dma-map-unmap
+iommufd-dmabuf
 vfio-pci-device-migration
 vfio-pci-device-migration-stress
 vfio-pci-device-map-alignment

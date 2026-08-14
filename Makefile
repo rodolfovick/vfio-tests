@@ -15,6 +15,7 @@ TEST_SRCS = \
 	vfio-pci-huge-fault-race.c \
 	iommufd-pci-device-open.c \
 	iommufd-dma-map-unmap.c \
+	iommufd-dmabuf.c \
 	vfio-pci-device-migration.c \
 	vfio-pci-device-migration-stress.c \
 	vfio-pci-device-map-alignment.c \
