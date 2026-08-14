@@ -33,22 +33,10 @@ void usage(char *name)
 int main(int argc, char **argv)
 {
 	const char *devname;
-	int ret, device, iommufd;
+	int ret, device, iommufd, ioas_id;
 	unsigned long i, count, map_size, max_cycles, nr_chunks;
 	void **maps;
 
-	struct vfio_device_bind_iommufd bind = {
-		.argsz = sizeof(bind),
-		.flags = 0,
-	};
-	struct iommu_ioas_alloc alloc_data = {
-		.size = sizeof(alloc_data),
-		.flags = 0,
-	};
-	struct vfio_device_attach_iommufd_pt attach_data = {
-		.argsz = sizeof(attach_data),
-		.flags = 0,
-	};
 	struct iommu_ioas_map map = {
 		.size = sizeof(map),
 		.flags = IOMMU_IOAS_MAP_READABLE |
@@ -70,39 +58,15 @@ int main(int argc, char **argv)
 	max_cycles = argc > 3 ? strtoul(argv[3], NULL, 0) : MAX_CYCLES_DEFAULT;
 	nr_chunks = map_size / MAP_CHUNK;
 
-	device = vfio_device_iommufd_getfd(devname);
-	if (device < 0)
-		return 1;
-
 	iommufd = open("/dev/iommu", O_RDWR);
 	if (iommufd < 0) {
 		printf("Failed to open /dev/iommu: %s\n", strerror(errno));
 		return 1;
 	}
 
-	bind.iommufd = iommufd;
-	ret = ioctl(device, VFIO_DEVICE_BIND_IOMMUFD, &bind);
-	if (ret) {
-		printf("VFIO_DEVICE_BIND_IOMMUFD failed: %s\n", strerror(errno));
+	if (vfio_device_iommufd_attach(iommufd, devname, &device, &ioas_id))
 		return 1;
-	}
 
-	ret = ioctl(iommufd, IOMMU_IOAS_ALLOC, &alloc_data);
-	if (ret) {
-		printf("IOMMU_IOAS_ALLOC failed: %s\n", strerror(errno));
-		return 1;
-	}
-
-	attach_data.pt_id = alloc_data.out_ioas_id;
-	ret = ioctl(device, VFIO_DEVICE_ATTACH_IOMMUFD_PT, &attach_data);
-	if (ret) {
-		printf("VFIO_DEVICE_ATTACH_IOMMUFD_PT failed: %s\n",
-		       strerror(errno));
-		return 1;
-	}
-
-	printf("Attached iommufd=%d ioas=%d\n",
-	       iommufd, alloc_data.out_ioas_id);
 	printf("map_size=%luMB nr_chunks=%lu max_cycles=%lu\n",
 	       map_size / (1024 * 1024), nr_chunks, max_cycles);
 
@@ -114,10 +78,10 @@ int main(int argc, char **argv)
 	}
 	memset(maps, 0, sizeof(void *) * nr_chunks);
 
-	map.ioas_id = alloc_data.out_ioas_id;
+	map.ioas_id = ioas_id;
 	map.length = MAP_CHUNK;
 
-	unmap.ioas_id = alloc_data.out_ioas_id;
+	unmap.ioas_id = ioas_id;
 
 	for (count = 0; count < max_cycles; count++) {
 

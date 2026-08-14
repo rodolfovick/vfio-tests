@@ -24,6 +24,8 @@ int vfio_device_attach_iommu_type(const char *devname, int *container_out,
 				  int *device_out, int *group_out,
 				  int iommu_type);
 int vfio_device_iommufd_getfd(const char *devname);
+int vfio_device_iommufd_attach(int iommufd, const char *devname,
+			       int *device_out, int *ioas_id_out);
 
 #define NSEC_PER_SEC 1000000000ul
 #define USEC_PER_SEC 1000000ul

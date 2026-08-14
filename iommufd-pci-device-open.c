@@ -35,7 +35,7 @@ void usage(char *name)
 int main(int argc, char **argv)
 {
 	const char *devname;
-        int i, ret, device, iommufd;
+        int i, ret, device, iommufd, ioas_id;
 
         struct vfio_device_info device_info = {
                 .argsz = sizeof(device_info)
@@ -48,49 +48,18 @@ int main(int argc, char **argv)
                 usage(argv[0]);
                 return -1;
         }
-	
+
 	devname = argv[1];
-
-        device = vfio_device_iommufd_getfd(devname);
-        if (device < 0)
-                return -1;
-
-        struct vfio_device_bind_iommufd bind = {
-            .argsz = sizeof(bind),
-            .flags = 0,
-        };
-        struct iommu_ioas_alloc alloc_data  = {
-            .size = sizeof(alloc_data),
-            .flags = 0,
-        };
-        struct vfio_device_attach_iommufd_pt attach_data = {
-            .argsz = sizeof(attach_data),
-            .flags = 0,
-        };
-        struct iommu_ioas_map map = {
-            .size = sizeof(map),
-            .flags = IOMMU_IOAS_MAP_READABLE |
-                IOMMU_IOAS_MAP_WRITEABLE |
-                IOMMU_IOAS_MAP_FIXED_IOVA,
-            .__reserved = 0,
-        };
 
         iommufd = open("/dev/iommu", O_RDWR);
         if (iommufd < 0) {
-                printf("Failed to open /dev/iommufd, %d (%s)\n",
+                printf("Failed to open /dev/iommu, %d (%s)\n",
                        iommufd, strerror(errno));
                 return 1;
         }
 
-        bind.iommufd = iommufd; // negative value means vfio-noiommu mode
-        ret = ioctl(device, VFIO_DEVICE_BIND_IOMMUFD, &bind);
-        if (ret < 0) {
-                printf("Failed VFIO_DEVICE_BIND_IOMMUFD %d (%s)\n",
-                       ret, strerror(errno));
+        if (vfio_device_iommufd_attach(iommufd, devname, &device, &ioas_id))
                 return 1;
-        }
-
-        printf("Bind to IOMMUFD %d with dev_id %d\n", iommufd, bind.out_devid);
 
         if (ioctl(device, VFIO_DEVICE_GET_INFO, &device_info)) {
                 printf("Failed to get device info\n");
@@ -124,7 +93,7 @@ int main(int argc, char **argv)
                                 printf("mmap failed\n");
                                 continue;
                         }
-			
+
 			if (verbose)
 				hexdump(map, region_info.size > 64 ? 64 :
 					region_info.size);
@@ -132,29 +101,18 @@ int main(int argc, char **argv)
                 }
         }
 
-        ret = ioctl(iommufd, IOMMU_IOAS_ALLOC, &alloc_data);
-        if (ret < 0) {
-                printf("Failed IOMMU_IOAS_ALLOC %d (%s)\n",
-                       ret, strerror(errno));
-                return 1;
-        }
-
-        attach_data.pt_id = alloc_data.out_ioas_id;
-        ret = ioctl(device, VFIO_DEVICE_ATTACH_IOMMUFD_PT, &attach_data);
-        if (ret < 0) {
-                printf("Failed VFIO_DEVICE_ATTACH_IOMMUFD_PT ioas_id %d %d (%s)\n",
-                       attach_data.pt_id, ret, strerror(errno));
-                return 1;
-        }
-
-        printf("Attached IOMMUFD %d ioas %d hwpt %d\n", iommufd, alloc_data.out_ioas_id, attach_data.pt_id);
-
         /* Allocate some space and setup a DMA mapping */
-        map.user_va = (__u64)mmap(0, 1024 * 1024, PROT_READ | PROT_WRITE,
-                MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
-        map.iova = 0; /* 1MB starting at 0x0 from device view */
-        map.length = 1024 * 1024;
-        map.ioas_id = alloc_data.out_ioas_id;
+        struct iommu_ioas_map map = {
+            .size = sizeof(map),
+            .flags = IOMMU_IOAS_MAP_READABLE |
+                IOMMU_IOAS_MAP_WRITEABLE |
+                IOMMU_IOAS_MAP_FIXED_IOVA,
+            .ioas_id = ioas_id,
+            .iova = 0,
+            .length = 1024 * 1024,
+            .user_va = (__u64)mmap(0, 1024 * 1024, PROT_READ | PROT_WRITE,
+                MAP_PRIVATE | MAP_ANONYMOUS, 0, 0),
+        };
 
         ret = ioctl(iommufd, IOMMU_IOAS_MAP, &map);
         if (ret < 0) {
@@ -162,7 +120,8 @@ int main(int argc, char **argv)
                        map.ioas_id, ret, strerror(errno));
                 return 1;
         }
-        printf("Mapped user_va %llx size %llx to iova %llx in ioas %d\n", map.user_va, map.length, map.iova, map.ioas_id);
+        printf("Mapped user_va %llx size %llx to iova %llx in ioas %d\n",
+               map.user_va, map.length, map.iova, map.ioas_id);
 
         struct vfio_pci_hot_reset_info *reset_info;
         struct vfio_pci_dependent_device *devices;

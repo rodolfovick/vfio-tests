@@ -22,6 +22,7 @@
 #include <sys/types.h>
 #include <dirent.h>
 
+#include <linux/iommufd.h>
 #include <linux/vfio.h>
 
 int verbose = -1;
@@ -124,7 +125,7 @@ int vfio_device_iommufd_getfd(const char *devname)
 
 	dir = opendir(path);
 	if (!dir) {
-		printf("couldn't open directory %s", path);
+		printf("couldn't open directory %s\n", path);
 		return -1;
 	}
 
@@ -150,6 +151,58 @@ int vfio_device_iommufd_getfd(const char *devname)
 	}
 
 	return ret;
+}
+
+int vfio_device_iommufd_attach(int iommufd, const char *devname,
+			       int *device_out, int *ioas_id_out)
+{
+	int device, ret;
+
+	struct vfio_device_bind_iommufd bind = {
+		.argsz = sizeof(bind),
+		.iommufd = iommufd,
+	};
+	struct iommu_ioas_alloc alloc_data = {
+		.size = sizeof(alloc_data),
+	};
+	struct vfio_device_attach_iommufd_pt attach_data = {
+		.argsz = sizeof(attach_data),
+	};
+
+	device = vfio_device_iommufd_getfd(devname);
+	if (device < 0)
+		return -1;
+
+	ret = ioctl(device, VFIO_DEVICE_BIND_IOMMUFD, &bind);
+	if (ret < 0) {
+		printf("Failed VFIO_DEVICE_BIND_IOMMUFD %s: %s\n",
+		       devname, strerror(errno));
+		return -1;
+	}
+
+	printf("%s: bind to IOMMUFD %d with dev_id %d\n",
+	       devname, iommufd, bind.out_devid);
+
+	ret = ioctl(iommufd, IOMMU_IOAS_ALLOC, &alloc_data);
+	if (ret < 0) {
+		printf("Failed IOMMU_IOAS_ALLOC: %s\n", strerror(errno));
+		return -1;
+	}
+
+	attach_data.pt_id = alloc_data.out_ioas_id;
+	ret = ioctl(device, VFIO_DEVICE_ATTACH_IOMMUFD_PT, &attach_data);
+	if (ret < 0) {
+		printf("Failed VFIO_DEVICE_ATTACH_IOMMUFD_PT %s: %s\n",
+		       devname, strerror(errno));
+		return -1;
+	}
+
+	printf("%s: attached ioas %d hwpt %d\n",
+	       devname, alloc_data.out_ioas_id, attach_data.pt_id);
+
+	*device_out = device;
+	*ioas_id_out = alloc_data.out_ioas_id;
+	return 0;
 }
 
 static int vfio_device_get_groupid(const char *devname)
