@@ -68,9 +68,13 @@ static void do_map_unmap(int container, int device,
 	}
 	after = now_nsec();
 
-	printf("\tdma size %9ldK mmapped in %3ld.%03lds\n", dma_size / 1024,
-	       (after - before) / NSEC_PER_SEC,
-	       ((after - before) % NSEC_PER_SEC) / USEC_PER_SEC);
+	unsigned long elapsed = after - before;
+	char dsz[16];
+
+	size_str(dma_size, dsz, sizeof(dsz));
+	printf("\tdma size %7s mapped in %6ld.%03ldms\n", dsz,
+	       elapsed / NSEC_PER_MSEC,
+	       (elapsed % NSEC_PER_MSEC) / USEC_PER_MSEC);
 
 unmap:
 	dma_unmap.argsz = sizeof(dma_unmap);

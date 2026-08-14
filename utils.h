@@ -47,4 +47,18 @@ void *mmap_align(void *addr, size_t length, int prot, int flags,
 
 #define DIV_ROUND_UP(n, d) (((n) + (d) - 1) / (d))
 
+#define NSEC_PER_MSEC (NSEC_PER_SEC / 1000)
+#define USEC_PER_MSEC (USEC_PER_SEC / 1000)
+
+static inline const char *size_str(unsigned long size, char *buf, size_t len)
+{
+	if (size >= (1ul << 30) && !(size & ((1ul << 30) - 1)))
+		snprintf(buf, len, "%ldGB", size >> 30);
+	else if (size >= (1ul << 20) && !(size & ((1ul << 20) - 1)))
+		snprintf(buf, len, "%ldMB", size >> 20);
+	else
+		snprintf(buf, len, "%ldKB", size >> 10);
+	return buf;
+}
+
 #endif /* VFIO_TESTSUITE_UTILS_H */
