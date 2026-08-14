@@ -35,6 +35,7 @@ int main(int argc, char **argv)
 	const char *devname;
 	int ret, device, iommufd, ioas_id;
 	unsigned long i, count, map_size, max_cycles, nr_chunks;
+	long slab_before;
 	void **maps;
 
 	struct iommu_ioas_map map = {
@@ -67,8 +68,9 @@ int main(int argc, char **argv)
 	if (vfio_device_iommufd_attach(iommufd, devname, &device, &ioas_id))
 		return 1;
 
-	printf("map_size=%luMB nr_chunks=%lu max_cycles=%lu\n",
-	       map_size / (1024 * 1024), nr_chunks, max_cycles);
+	printf("map_size=%luMB dma_size=%luKB max_cycles=%lu\n",
+	       map_size / (1024 * 1024), (unsigned long)MAP_CHUNK / 1024,
+	       max_cycles);
 
 	maps = malloc(sizeof(void *) * nr_chunks);
 	if (!maps) {
@@ -131,6 +133,8 @@ int main(int argc, char **argv)
 	}
 
 	/* Final pass: map everything, then bulk unmap */
+	slab_before = slab_sunreclaim_kb();
+
 	for (i = 0; i < nr_chunks; i++) {
 		map.user_va = (__u64)maps[i];
 		map.iova = i * MAP_CHUNK;
@@ -145,6 +149,9 @@ int main(int argc, char **argv)
 
 	printf("+");
 	fflush(stdout);
+
+	printf("\nIOMMU memory: ~%ldMB\n",
+	       (slab_sunreclaim_kb() - slab_before) / 1024);
 
 	unmap.iova = 0;
 	unmap.length = map_size;

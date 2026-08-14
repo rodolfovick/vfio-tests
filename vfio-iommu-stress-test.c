@@ -43,6 +43,7 @@ int main(int argc, char **argv)
 	const char *devname;
 	int container;
 	unsigned long i, j, vaddr, map_max;
+	long slab_before;
 	int ret;
 	struct vfio_iommu_type1_dma_map dma_map = {
 		.argsz = sizeof(dma_map)
@@ -68,11 +69,15 @@ int main(int argc, char **argv)
 		printf("Failed to allocate memory\n");
 		return -1;
 	}
-	printf("%lx\n", vaddr);
+	if (verbose)
+		printf("vaddr: %lx\n", vaddr);
 
 	dma_map.flags = VFIO_DMA_MAP_FLAG_READ | VFIO_DMA_MAP_FLAG_WRITE;
 
-	printf("map_max=%lu\n", map_max);
+	slab_before = slab_sunreclaim_kb();
+
+	printf("map_max=%lu iterations (%luGB IOVA range)\n",
+	       map_max, map_max * (MAP_SIZE >> 30));
 	printf("Mapping:   0%%");
 	fflush(stdout);
 	for (i = 0; i < map_max; i++) {
@@ -137,6 +142,9 @@ int main(int argc, char **argv)
 		}
 	}
 	printf("\b\b\b\b100%%\n");
+
+	printf("IOMMU memory: ~%ldMB\n",
+	       (slab_sunreclaim_kb() - slab_before) / 1024);
 
 	printf("Unmapping:   0%%");
 	fflush(stdout);

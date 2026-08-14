@@ -88,6 +88,22 @@ int vfio_pci_is_d3(const char *devname)
 	return !strncmp(state, "D3", 2);
 }
 
+long slab_sunreclaim_kb(void)
+{
+	FILE *f;
+	char line[128];
+	long val = 0;
+
+	f = fopen("/proc/meminfo", "r");
+	if (!f)
+		return 0;
+	while (fgets(line, sizeof(line), f))
+		if (sscanf(line, "SUnreclaim: %ld kB", &val) == 1)
+			break;
+	fclose(f);
+	return val;
+}
+
 unsigned int vfio_pci_vendor(const char *devname)
 {
 	char path[PATH_MAX];

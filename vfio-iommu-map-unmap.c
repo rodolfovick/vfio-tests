@@ -36,6 +36,7 @@ int main(int argc, char **argv)
 	const char *devname;
 	int ret, container;
 	unsigned long i, count, map_size, max_cycles, nr_chunks;
+	long slab_before;
 	void **maps;
 	struct vfio_iommu_type1_dma_map dma_map = {
 		.argsz = sizeof(dma_map)
@@ -58,7 +59,8 @@ int main(int argc, char **argv)
 	if (vfio_device_attach(devname, &container, NULL, NULL))
 		return -1;
 
-	printf("map_size=%luMB max_cycles=%lu\n", map_size / (1024 * 1024),
+	printf("map_size=%luMB dma_size=%luKB max_cycles=%lu\n",
+	       map_size / (1024 * 1024), (unsigned long)MAP_CHUNK / 1024,
 	       max_cycles);
 
 	/* Test code */
@@ -94,6 +96,9 @@ int main(int argc, char **argv)
 			fflush(stdout);
 		}
 
+		if (count == 0)
+			slab_before = slab_sunreclaim_kb();
+
 		/* Map MAP_CHUNK at a time, each chunk is pinned on map, so THP can't do anything until unmap */
 		for (i = dma_map.iova = 0; i < nr_chunks; i++, dma_map.iova += dma_map.size) {
 			if (!maps[i]) {
@@ -123,6 +128,10 @@ int main(int argc, char **argv)
 
 		printf("+");
 		fflush(stdout);
+
+		if (count == 0)
+			printf("\nIOMMU memory: ~%ldMB\n",
+			       (slab_sunreclaim_kb() - slab_before) / 1024);
 
 		/* Unmap everything at once */
 		ret = ioctl(container, VFIO_IOMMU_UNMAP_DMA, &dma_unmap);
