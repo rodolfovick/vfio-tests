@@ -71,6 +71,22 @@ int vfio_pci_is_vga(const char *devname)
 	return (class >> 8) == 0x0300;
 }
 
+int vfio_pci_is_d3(const char *devname)
+{
+	char path[PATH_MAX];
+	FILE *f;
+	char state[16] = "";
+
+	snprintf(path, sizeof(path),
+		 "/sys/bus/pci/devices/%s/power_state", devname);
+	f = fopen(path, "r");
+	if (!f)
+		return 0;
+	fscanf(f, "%15s", state);
+	fclose(f);
+	return !strncmp(state, "D3", 2);
+}
+
 unsigned int vfio_pci_vendor(const char *devname)
 {
 	char path[PATH_MAX];
