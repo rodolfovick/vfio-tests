@@ -17,7 +17,8 @@ TEST_SRCS = \
 	iommufd-dma-map-unmap.c \
 	vfio-pci-device-migration.c \
 	vfio-pci-device-migration-stress.c \
-	vfio-pci-device-map-alignment.c
+	vfio-pci-device-map-alignment.c \
+	vfio-pci-bar-fault-timing.c
 
 SHARED_OBJS = $(SHARED_SRCS:.c=.o)
 TEST_BINS = $(TEST_SRCS:.c=)

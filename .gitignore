@@ -17,4 +17,5 @@ iommufd-dma-map-unmap
 vfio-pci-device-migration
 vfio-pci-device-migration-stress
 vfio-pci-device-map-alignment
+vfio-pci-bar-fault-timing
 .vscode

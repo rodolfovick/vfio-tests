@@ -94,6 +94,9 @@ run_test ./vfio-correctness-tests $device /dev/hugepages
 run_test ./vfio-iommu-map-unmap $device $map_size_mb 5
 run_test ./vfio-iommu-stress-test $device $map_max
 
+# BAR fault timing
+run_test ./vfio-pci-bar-fault-timing $device
+
 # Hugepage guest mapping (PF only, VF auto-skips)
 run_test ./vfio-huge-guest-test $device /dev/hugepages 8
 run_test ./vfio-pci-huge-fault-race $device

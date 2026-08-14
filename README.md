@@ -35,6 +35,7 @@ Set `VFIO_VERBOSE=1` for detailed output.
 | `iommufd-pci-device-open` | Device open (IOMMUFD cdev API) |
 | `vfio-pci-device-dma-map` | DMA mapping basics |
 | `vfio-pci-device-map-alignment` | BAR mmap alignment |
+| `vfio-pci-bar-fault-timing` | BAR fault timing (PTE/PMD/PUD) |
 | `vfio-correctness-tests` | DMA correctness with hugepages |
 | `vfio-iommu-map-unmap` | IOMMU map/unmap cycles |
 | `vfio-iommu-stress-test` | IOMMU mapping stress |
