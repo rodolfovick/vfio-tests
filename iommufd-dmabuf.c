@@ -41,9 +41,10 @@ struct vfio_device_feature_dma_buf {
 
 void usage(char *name)
 {
-	printf("usage: %s <src_bdf> [dst_bdf]\n", name);
-	printf("  Without dst_bdf: export and self-map dma-buf\n");
-	printf("  With dst_bdf:    export src BAR, map into dst IOAS (P2P)\n");
+	printf("usage: %s <src ssss:bb:dd.f> [dst ssss:bb:dd.f]\n", name);
+	printf("\tWithout dst: export all mmappable BARs and self-map dma-buf\n");
+	printf("\tWith dst:    export src BARs, map into dst IOAS (P2P)\n");
+	printf("\nTest VFIO dma-buf BAR export and P2P mapping via iommufd\n");
 }
 
 int main(int argc, char **argv)

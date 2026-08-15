@@ -22,12 +22,16 @@
 #include "utils.h"
 
 #define MAP_CHUNK	(4 * 1024)
-#define MAP_SIZE_DEFAULT (64UL * 1024 * 1024)
+#define MAP_SIZE_DEFAULT (256UL * 1024 * 1024)
 #define MAX_CYCLES_DEFAULT 5
 
 void usage(char *name)
 {
-	printf("usage: %s <ssss:bb:dd.f> [map_size_mb] [max_cycles] [stride_kb]\n", name);
+	printf("usage: %s <ssss:bb:dd.f> [map_size_mb] [cycles] [stride_kb]\n", name);
+	printf("\tmap_size_mb: total mapped size in MB (default 256)\n");
+	printf("\tcycles:      map/unmap cycles (default 5)\n");
+	printf("\tstride_kb:   IOVA stride in KB (default 4)\n");
+	printf("\nDMA map/unmap stress test with 4KB chunks (iommufd)\n");
 }
 
 int main(int argc, char **argv)

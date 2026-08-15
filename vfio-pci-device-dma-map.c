@@ -29,6 +29,7 @@
 void usage(char *name)
 {
 	printf("usage: %s <ssss:bb:dd.f>\n", name);
+	printf("\nDMA map BAR regions and test high/low memory mappings\n");
 }
 
 #define HIGH_MEM (4ul * 1024 * 1024 * 1024)

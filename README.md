@@ -26,25 +26,26 @@ Set `VFIO_VERBOSE=1` for detailed output.
 
 ## Tests
 
-| Test | Area |
-|------|------|
-| `vfio-pci-device-open` | Device open (legacy group API) |
-| `vfio-pci-device-open-sparse-mmap` | Sparse mmap regions |
-| `vfio-pci-device-open-igd` | Intel IGD-specific open |
-| `vfio-noiommu-pci-device-open` | No-IOMMU mode |
-| `iommufd-pci-device-open` | Device open (IOMMUFD cdev API) |
-| `iommufd-dmabuf` | DMA-BUF export and P2P mapping (IOMMUFD) |
-| `vfio-pci-device-dma-map` | DMA mapping basics |
-| `vfio-pci-device-map-alignment` | BAR mmap alignment |
-| `vfio-pci-bar-fault-timing` | BAR fault timing (PTE/PMD/PUD) |
-| `vfio-correctness-tests` | DMA correctness with hugepages |
-| `vfio-iommu-map-unmap` | IOMMU map/unmap cycles |
-| `vfio-iommu-stress-test` | IOMMU mapping stress |
-| `vfio-huge-guest-test` | Hugepage guest mappings |
-| `vfio-pci-huge-fault-race` | Hugepage fault races |
-| `vfio-pci-hot-reset` | PCI hot reset |
-| `vfio-pci-device-migration` | Live migration |
-| `vfio-pci-device-migration-stress` | Migration stress |
+| Test | Description |
+|------|-------------|
+| `vfio-pci-device-open` | Open device, enumerate regions and IRQs (legacy group) |
+| `vfio-pci-device-open-sparse-mmap` | Open device, test sparse mmap regions (legacy group) |
+| `vfio-pci-device-open-igd` | Open Intel IGD device, read OpRegion (legacy group) |
+| `vfio-noiommu-pci-device-open` | Open device in no-IOMMU mode (legacy group) |
+| `iommufd-pci-device-open` | Open device, enumerate regions, DMA map, hot reset (iommufd) |
+| `iommufd-dmabuf` | VFIO dma-buf BAR export and P2P mapping via iommufd |
+| `iommufd-dma-map-unmap` | DMA map/unmap stress test with 4KB chunks (iommufd) |
+| `vfio-pci-device-dma-map` | DMA map BAR regions and test high/low memory mappings |
+| `vfio-pci-device-map-alignment` | Test BAR mmap alignment at various power-of-2 sizes |
+| `vfio-pci-bar-fault-timing` | Measure BAR mmap page fault latency at PTE/PMD/PUD sizes |
+| `vfio-correctness-tests` | DMA correctness tests with hugepage backing |
+| `vfio-iommu-map-unmap` | DMA map/unmap stress test with 4KB chunks (legacy container) |
+| `vfio-iommu-stress-test` | Interleaved 2MB DMA mapping stress test (legacy container) |
+| `vfio-huge-guest-test` | Hugepage guest memory DMA mapping test |
+| `vfio-pci-huge-fault-race` | Race test for huge page BAR mmap faults (legacy group) |
+| `vfio-pci-hot-reset` | PCI hot reset via VFIO (legacy group) |
+| `vfio-pci-device-migration` | Query device migration and dirty tracking capabilities |
+| `vfio-pci-device-migration-stress` | Migration state cycle stress test (iommufd) |
 
 ## License
 

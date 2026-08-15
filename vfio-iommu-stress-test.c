@@ -25,17 +25,14 @@
 #include "utils.h"
 
 #define MAP_SIZE (1UL * 1024 * 1024 * 1024)
-#define MAP_MAX_DEFAULT 1024
+#define MAP_MAX_DEFAULT 127
 #define DMA_CHUNK (2UL * 1024 * 1024)
 
 void usage(char *name)
 {
-	printf("usage: %s ssss:bb:dd.f [map_max]\n", name);
-	printf("\tssss: PCI segment, ex. 0000\n");
-	printf("\tbb:   PCI bus, ex. 01\n");
-	printf("\tdd:   PCI device, ex. 06\n");
-	printf("\tf:    PCI function, ex. 0\n");
-	printf("\tmap_max: number of 1GB IOVA iterations (default 1024)\n");
+	printf("usage: %s <ssss:bb:dd.f> [map_max]\n", name);
+	printf("\tmap_max: number of 1GB IOVA iterations (default 127)\n");
+	printf("\nInterleaved 2MB DMA mapping stress test (legacy container)\n");
 }
 
 int main(int argc, char **argv)

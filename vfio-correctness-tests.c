@@ -29,6 +29,8 @@
 void usage(char *name)
 {
 	printf("usage: %s <ssss:bb:dd.f> [memory path]\n", name);
+	printf("\tmemory path: hugepage mount point for DMA buffers\n");
+	printf("\nDMA correctness tests with hugepage backing\n");
 }
 
 int pagesize_test(int fd, unsigned long vaddr,

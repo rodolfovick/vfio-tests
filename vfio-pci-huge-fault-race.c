@@ -30,6 +30,7 @@
 void usage(char *name)
 {
 	printf("usage: %s <ssss:bb:dd.f>\n", name);
+	printf("\nRace test for huge page BAR mmap faults (legacy group)\n");
 }
 
 static int go;

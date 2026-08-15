@@ -54,6 +54,9 @@ static int parse_pagesizes(int argc, char **argv, size_t *out)
 void usage(char *name)
 {
 	printf("usage: %s <ssss:bb:dd.f> [iterations] [4|2048|1048576 ...]\n", name);
+	printf("\titerations: fault timing iterations (default 10)\n");
+	printf("\tpage sizes: in KB, one or more of 4, 2048, 1048576\n");
+	printf("\nMeasure BAR mmap page fault latency at PTE/PMD/PUD sizes\n");
 }
 
 static void do_fault_timing(int device, struct vfio_region_info *region,

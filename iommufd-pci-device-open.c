@@ -30,6 +30,7 @@
 void usage(char *name)
 {
         printf("usage: %s <ssss:bb:dd.f>\n", name);
+        printf("\nOpen device, enumerate regions, DMA map, hot reset (iommufd)\n");
 }
 
 int main(int argc, char **argv)

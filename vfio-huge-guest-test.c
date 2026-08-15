@@ -33,6 +33,9 @@
 void usage(char *name)
 {
 	printf("usage: %s <ssss:bb:dd.f> [hugepage path | guest_gb] [guest_gb]\n", name);
+	printf("\thugepage path: hugepage mount point (default /dev/hugepages)\n");
+	printf("\tguest_gb:      guest memory size in GB (default 1024)\n");
+	printf("\nHugepage guest memory DMA mapping test\n");
 }
 
 int main(int argc, char **argv)

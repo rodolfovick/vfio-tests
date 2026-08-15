@@ -26,7 +26,7 @@
 
 #include "utils.h"
 
-#define DEFAULT_LOOPS 10
+#define DEFAULT_CYCLES 10
 
 struct mig_state_ioctl {
 	struct vfio_device_feature hdr;
@@ -152,13 +152,15 @@ err_devfd:
 
 void usage(char *name)
 {
-	printf("usage: %s <ssss:bb:dd.f> [loops]\n", name);
+	printf("usage: %s <ssss:bb:dd.f> [cycles]\n", name);
+	printf("\tcycles: migration cycles (default 10)\n");
+	printf("\nMigration state cycle stress test (iommufd)\n");
 }
 
 int main(int argc, char **argv)
 {
 	const char *devname;
-	int loops = DEFAULT_LOOPS;
+	int cycles = DEFAULT_CYCLES;
 	int devfd, iommufd;
 	int i, ret = 0;
 
@@ -169,7 +171,7 @@ int main(int argc, char **argv)
 
 	devname = argv[1];
 	if (argc > 2)
-		loops = atoi(argv[2]);
+		cycles = atoi(argv[2]);
 
 	if (open_device(devname, &devfd, &iommufd))
 		return -1;
@@ -186,12 +188,12 @@ int main(int argc, char **argv)
 		return -1;
 	printf("initial state: %s\n", state_name(cur));
 
-	for (i = 0; i < loops; i++) {
+	for (i = 0; i < cycles; i++) {
 		int save_fd = -1, resume_fd = -1;
 		char state_buf[4096];
 		ssize_t state_size = 0, n;
 
-		printf("--- cycle %d/%d ---\n", i + 1, loops);
+		printf("--- cycle %d/%d ---\n", i + 1, cycles);
 
 		/* RUNNING -> STOP */
 		if (set_state(devfd, VFIO_DEVICE_STATE_STOP, NULL)) {
@@ -261,7 +263,7 @@ int main(int argc, char **argv)
 	}
 
 	if (!ret)
-		printf("migration state cycle: %d/%d cycles passed\n", i, loops);
+		printf("migration state cycle: %d/%d cycles passed\n", i, cycles);
 
 out:
 	close(devfd);

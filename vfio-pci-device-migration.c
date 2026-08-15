@@ -21,6 +21,7 @@
 void usage(char *name)
 {
 	printf("usage: %s <ssss:bb:dd.f>\n", name);
+	printf("\nQuery device migration and dirty tracking capabilities\n");
 }
 
 static bool vfio_device_dma_logging_supported(int fd)

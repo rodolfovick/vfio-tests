@@ -32,6 +32,7 @@
 void usage(char *name)
 {
 	printf("usage: %s <ssss:bb:dd.f>\n", name);
+	printf("\nTest BAR mmap alignment at various power-of-2 sizes\n");
 }
 
 int main(int argc, char **argv)

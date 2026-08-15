@@ -15,21 +15,18 @@
 
 #include "utils.h"
 
-#define MAP_SIZE_DEFAULT (1UL * 1024 * 1024 * 1024)
+#define MAP_SIZE_DEFAULT (255UL * 1024 * 1024)
 #define MAP_CHUNK (4 * 1024)
 #define REALLOC_INTERVAL 30
-#define MAX_CYCLES_DEFAULT 0
+#define MAX_CYCLES_DEFAULT 5
 
 void usage(char *name)
 {
-	printf("usage: %s ssss:bb:dd.f [map_size_mb] [max_cycles] [stride_kb]\n", name);
-	printf("\tssss: PCI segment, ex. 0000\n");
-	printf("\tbb:   PCI bus, ex. 01\n");
-	printf("\tdd:   PCI device, ex. 06\n");
-	printf("\tf:    PCI function, ex. 0\n");
-	printf("\tmap_size_mb: IOVA range in MB (default 1024)\n");
-	printf("\tmax_cycles:  stop after N cycles, 0 = infinite (default 0)\n");
+	printf("usage: %s <ssss:bb:dd.f> [map_size_mb] [cycles] [stride_kb]\n", name);
+	printf("\tmap_size_mb: total mapped size in MB (default 255)\n");
+	printf("\tcycles:      map/unmap cycles (default 5)\n");
 	printf("\tstride_kb:   IOVA stride in KB (default 4)\n");
+	printf("\nDMA map/unmap stress test with 4KB chunks (legacy container)\n");
 }
 
 int main(int argc, char **argv)

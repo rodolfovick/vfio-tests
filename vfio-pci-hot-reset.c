@@ -29,6 +29,7 @@
 void usage(char *name)
 {
 	printf("usage: %s <ssss:bb:dd.f>\n", name);
+	printf("\nPCI hot reset via VFIO (legacy group)\n");
 }
 
 int main(int argc, char **argv)
