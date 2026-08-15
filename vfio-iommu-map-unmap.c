@@ -22,17 +22,17 @@
 
 void usage(char *name)
 {
-	printf("usage: %s <ssss:bb:dd.f> [map_size_mb] [cycles] [stride_kb]\n", name);
-	printf("\tmap_size_mb: total mapped size in MB (default 255)\n");
-	printf("\tcycles:      map/unmap cycles (default 40)\n");
-	printf("\tstride_kb:   IOVA stride in KB (default 4)\n");
+	printf("usage: %s [options] <ssss:bb:dd.f>\n", name);
+	printf("\t-s size_mb    total mapped size in MB (default 255)\n");
+	printf("\t-c cycles     map/unmap cycles (default 40)\n");
+	printf("\t-S stride_kb  IOVA stride in KB (default 4)\n");
 	printf("\nDMA map/unmap stress test with 4KB chunks (legacy container)\n");
 }
 
 int main(int argc, char **argv)
 {
 	const char *devname;
-	int ret, container;
+	int opt, ret, container;
 	unsigned long i, count, map_size, max_cycles, nr_chunks, stride;
 	long slab_before, slab_delta = 0;
 	void **maps;
@@ -43,16 +43,35 @@ int main(int argc, char **argv)
 		.argsz = sizeof(dma_unmap)
 	};
 
-	if (argc < 2) {
+	map_size = MAP_SIZE_DEFAULT;
+	max_cycles = MAX_CYCLES_DEFAULT;
+	stride = MAP_CHUNK;
+
+	while ((opt = getopt(argc, argv, "s:c:S:h")) != -1) {
+		switch (opt) {
+		case 's':
+			map_size = strtoul(optarg, NULL, 0) * 1024 * 1024;
+			break;
+		case 'c':
+			max_cycles = strtoul(optarg, NULL, 0);
+			break;
+		case 'S':
+			stride = strtoul(optarg, NULL, 0) * 1024;
+			break;
+		case 'h':
+		default:
+			usage(argv[0]);
+			return opt == 'h' ? 0 : -1;
+		}
+	}
+
+	if (optind >= argc) {
 		usage(argv[0]);
 		return -1;
 	}
 
-	devname = argv[1];
-	map_size = argc > 2 ? strtoul(argv[2], NULL, 0) * 1024 * 1024
-			    : MAP_SIZE_DEFAULT;
-	max_cycles = argc > 3 ? strtoul(argv[3], NULL, 0) : MAX_CYCLES_DEFAULT;
-	stride = argc > 4 ? strtoul(argv[4], NULL, 0) * 1024 : MAP_CHUNK;
+	devname = argv[optind];
+
 	if (stride < MAP_CHUNK) {
 		printf("stride_kb must be >= %d\n", MAP_CHUNK / 1024);
 		return -1;
@@ -177,6 +196,12 @@ int main(int argc, char **argv)
 
 	if (slab_delta)
 		printf("\nIOMMU page tables: ~%ldMB per cycle\n", slab_delta / 1024);
+
+	for (i = 0; i < nr_chunks; i++) {
+		if (maps[i])
+			munmap(maps[i], MAP_CHUNK);
+	}
+	free(maps);
 
 	printf("\n%lu mappings, Success\n", nr_chunks);
 	return 0;

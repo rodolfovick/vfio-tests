@@ -83,7 +83,7 @@ run_test ./vfio-noiommu-pci-device-open $device
 run_test ./iommufd-pci-device-open $device
 
 # DMA mapping (iommufd)
-run_test ./iommufd-dma-map-unmap $device 256 5
+run_test ./iommufd-dma-map-unmap $device
 
 # DMA-BUF export (iommufd)
 run_test ./iommufd-dmabuf $device
@@ -92,7 +92,7 @@ run_test ./iommufd-dmabuf $device
 run_test ./vfio-pci-device-dma-map $device
 run_test ./vfio-pci-device-map-alignment $device
 run_test ./vfio-correctness-tests $device /dev/hugepages
-run_test ./vfio-iommu-map-unmap $device 255 40
+run_test ./vfio-iommu-map-unmap $device
 run_test ./vfio-iommu-stress-test -c $map_max $device
 
 # BAR fault timing

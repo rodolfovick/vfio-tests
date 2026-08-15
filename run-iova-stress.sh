@@ -32,9 +32,9 @@ SAVED_LIMIT=$(cat "$DMA_LIMIT")
 
 echo "=== legacy container ==="
 echo "$NR_CHUNKS" > "$DMA_LIMIT"
-time ./vfio-iommu-map-unmap "$BDF" "$MAP_SIZE_MB" 1 2048
+time ./vfio-iommu-map-unmap -s "$MAP_SIZE_MB" -c 1 -S 2048 "$BDF"
 echo "$SAVED_LIMIT" > "$DMA_LIMIT"
 echo
 
 echo "=== iommufd ==="
-time ./iommufd-dma-map-unmap "$BDF" "$MAP_SIZE_MB" 1 2048
+time ./iommufd-dma-map-unmap -s "$MAP_SIZE_MB" -c 1 -S 2048 "$BDF"
