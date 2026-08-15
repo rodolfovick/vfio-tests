@@ -45,7 +45,12 @@ int main(int argc, char **argv)
 	}
 
 	devname = argv[1];
-	
+
+	if (!vfio_noiommu_enabled()) {
+		printf("Skipping: enable_unsafe_noiommu_mode is not enabled\n");
+		return EXIT_SKIP;
+	}
+
 	if (vfio_device_attach_iommu_type(devname, &container, &device,
 					  NULL, VFIO_NOIOMMU_IOMMU))
 		return -1;

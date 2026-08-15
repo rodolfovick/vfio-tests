@@ -117,6 +117,19 @@ long vfio_dma_entry_limit(void)
 	return val;
 }
 
+int vfio_noiommu_enabled(void)
+{
+	FILE *f;
+	char val;
+
+	f = fopen("/sys/module/vfio/parameters/enable_unsafe_noiommu_mode", "r");
+	if (!f)
+		return 0;
+	val = fgetc(f);
+	fclose(f);
+	return val == 'Y';
+}
+
 unsigned int vfio_pci_vendor(const char *devname)
 {
 	char path[PATH_MAX];
