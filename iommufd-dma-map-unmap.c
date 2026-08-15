@@ -62,6 +62,10 @@ int main(int argc, char **argv)
 			    : MAP_SIZE_DEFAULT;
 	max_cycles = argc > 3 ? strtoul(argv[3], NULL, 0) : MAX_CYCLES_DEFAULT;
 	stride = argc > 4 ? strtoul(argv[4], NULL, 0) * 1024 : MAP_CHUNK;
+	if (stride < MAP_CHUNK) {
+		printf("stride_kb must be >= %d\n", MAP_CHUNK / 1024);
+		return 1;
+	}
 	nr_chunks = map_size / MAP_CHUNK;
 
 	iommufd = open("/dev/iommu", O_RDWR);
