@@ -25,16 +25,12 @@ detect_iommu() {
 	echo "IOMMU address space: $(( mgaw + 1 ))-bit"
     fi
 
-    # DMA mapping limits from vfio_iommu_type1 dma_entry_limit
-    pagesize=$(getconf PAGESIZE)
+    # stress-test uses 2MB chunks over 1GB iterations: 512 entries per iteration
     dma_entry_limit=$(cat /sys/module/vfio_iommu_type1/parameters/dma_entry_limit 2>/dev/null)
     dma_entry_limit=${dma_entry_limit:-65535}
-    # map-unmap uses page-sized chunks: max mappable = dma_entry_limit * pagesize
-    map_size_mb=$(( dma_entry_limit * pagesize / 1024 / 1024 ))
-    # stress-test uses 2MB chunks over 1GB iterations: 512 entries per iteration
     map_max=$(( dma_entry_limit / 512 ))
     [ $map_max -lt 4 ] && map_max=4
-    echo "DMA entry limit: $dma_entry_limit, page size: ${pagesize} (page map: ${map_size_mb}MB, 2M map: ${map_max} iterations)"
+    echo "DMA entry limit: $dma_entry_limit (stress-test: ${map_max} iterations)"
 }
 
 setup_hugepages() {
@@ -87,7 +83,7 @@ run_test ./vfio-noiommu-pci-device-open $device
 run_test ./iommufd-pci-device-open $device
 
 # DMA mapping (iommufd)
-run_test ./iommufd-dma-map-unmap $device $map_size_mb 5
+run_test ./iommufd-dma-map-unmap $device 256 5
 
 # DMA-BUF export (iommufd)
 run_test ./iommufd-dmabuf $device
@@ -96,7 +92,7 @@ run_test ./iommufd-dmabuf $device
 run_test ./vfio-pci-device-dma-map $device
 run_test ./vfio-pci-device-map-alignment $device
 run_test ./vfio-correctness-tests $device /dev/hugepages
-run_test ./vfio-iommu-map-unmap $device $map_size_mb 5
+run_test ./vfio-iommu-map-unmap $device 255 40
 run_test ./vfio-iommu-stress-test $device $map_max
 
 # BAR fault timing
