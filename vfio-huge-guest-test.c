@@ -86,6 +86,14 @@ int main(int argc, char **argv)
 
 	if (strlen(mempath)) {
 		struct statfs fs;
+		long need = mmap_gb * 512;
+		long avail = hugepages_free();
+
+		if (avail < need) {
+			printf("Skipping: need %ld free 2MB hugepages, only %ld available\n",
+			       need, avail);
+			return EXIT_SKIP;
+		}
 
 		do {
 			ret = statfs(mempath, &fs);

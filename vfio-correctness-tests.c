@@ -357,6 +357,11 @@ int main(int argc, char **argv)
 
 	hugepagesize = pagesize = getpagesize();
 
+	if (strlen(mempath) && hugepages_free() < 1) {
+		printf("Skipping: no free 2MB hugepages available\n");
+		return EXIT_SKIP;
+	}
+
 	if (strlen(mempath)) {
 		do {
 			ret = statfs(mempath, &fs);

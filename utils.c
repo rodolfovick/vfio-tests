@@ -130,6 +130,19 @@ int vfio_noiommu_enabled(void)
 	return val == 'Y';
 }
 
+long hugepages_free(void)
+{
+	FILE *f;
+	long val = 0;
+
+	f = fopen("/sys/kernel/mm/hugepages/hugepages-2048kB/free_hugepages", "r");
+	if (!f)
+		return 0;
+	fscanf(f, "%ld", &val);
+	fclose(f);
+	return val;
+}
+
 unsigned int vfio_pci_vendor(const char *devname)
 {
 	char path[PATH_MAX];
