@@ -260,7 +260,7 @@ int vfio_device_iommufd_attach(int iommufd, const char *devname,
 	return 0;
 }
 
-static int vfio_device_get_groupid(const char *devname)
+int vfio_device_get_groupid(const char *devname)
 {
 	int  domain, bus, dev, func;
 	char group_path[PATH_MAX];
@@ -298,7 +298,7 @@ static int vfio_device_get_groupid(const char *devname)
 	return groupid;
 }
 
-static int vfio_group_open(int groupid, bool noiommu)
+int vfio_group_open(int groupid, bool noiommu)
 {
 	int fd;
 	char path[PATH_MAX];

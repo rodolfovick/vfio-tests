@@ -10,6 +10,7 @@
 #ifndef VFIO_TESTSUITE_UTILS_H
 #define VFIO_TESTSUITE_UTILS_H
 
+#include <stdbool.h>
 #include <time.h>
 
 /*
@@ -44,6 +45,8 @@ int vfio_pci_is_d3(const char *devname);
 long slab_sunreclaim_kb(void);
 long vfio_dma_entry_limit(void);
 int vfio_noiommu_enabled(void);
+int vfio_device_get_groupid(const char *devname);
+int vfio_group_open(int groupid, bool noiommu);
 long hugepages_free(void);
 unsigned int vfio_pci_vendor(const char *devname);
 
