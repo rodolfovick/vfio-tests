@@ -39,7 +39,7 @@ int main(int argc, char **argv)
 	const char *devname;
 	int ret, device, iommufd, ioas_id;
 	unsigned long i, count, map_size, max_cycles, nr_chunks, stride;
-	long slab_before;
+	long slab_before, slab_delta = 0;
 	void **maps;
 
 	struct iommu_ioas_map map = {
@@ -99,6 +99,12 @@ int main(int argc, char **argv)
 
 	for (count = 0; count < max_cycles; count++) {
 
+		if (count == 0)
+			slab_before = slab_sunreclaim_kb();
+
+		if (verbose)
+			printf("cycle %lu/%lu: map ", count + 1, max_cycles);
+
 		/* Map chunks across the IOVA range */
 		for (i = 0; i < nr_chunks; i++) {
 			if (!maps[i]) {
@@ -124,10 +130,21 @@ int main(int argc, char **argv)
 				       i * stride, strerror(errno));
 				return 1;
 			}
+			if (verbose && nr_chunks > 100 &&
+			    (i + 1) * 10 / nr_chunks != i * 10 / nr_chunks) {
+				printf(".");
+				fflush(stdout);
+			}
 		}
 
-		printf("+");
-		fflush(stdout);
+		if (count == 0)
+			slab_delta = slab_sunreclaim_kb() - slab_before;
+
+		if (!verbose) {
+			printf("+");
+			fflush(stdout);
+		} else
+			printf(" unmap ");
 
 		/* Unmap each chunk individually */
 		for (i = 0; i < nr_chunks; i++) {
@@ -140,15 +157,24 @@ int main(int argc, char **argv)
 				       i * stride, strerror(errno));
 				return 1;
 			}
+			if (verbose && nr_chunks > 100 &&
+			    (i + 1) * 10 / nr_chunks != i * 10 / nr_chunks) {
+				printf(".");
+				fflush(stdout);
+			}
 		}
 
-		printf("-");
-		fflush(stdout);
+		if (!verbose) {
+			printf("-");
+			fflush(stdout);
+		} else
+			printf("\n");
 	}
 
-	/* Final pass: map everything, then bulk unmap */
-	slab_before = slab_sunreclaim_kb();
+	if (slab_delta)
+		printf("\nIOMMU page tables: ~%ldMB per cycle\n", slab_delta / 1024);
 
+	/* Final pass: map everything, then bulk unmap */
 	for (i = 0; i < nr_chunks; i++) {
 		map.user_va = (__u64)maps[i];
 		map.iova = i * stride;
@@ -163,12 +189,6 @@ int main(int argc, char **argv)
 		}
 	}
 
-	printf("+");
-	fflush(stdout);
-
-	printf("\nIOMMU memory: ~%ldMB\n",
-	       (slab_sunreclaim_kb() - slab_before) / 1024);
-
 	unmap.iova = 0;
 	unmap.length = nr_chunks * stride;
 	ret = ioctl(iommufd, IOMMU_IOAS_UNMAP, &unmap);
@@ -176,8 +196,6 @@ int main(int argc, char **argv)
 		printf("IOMMU_IOAS_UNMAP (bulk) failed: %s\n", strerror(errno));
 		return 1;
 	}
-
-	printf("-");
 
 	for (i = 0; i < nr_chunks; i++) {
 		if (maps[i])

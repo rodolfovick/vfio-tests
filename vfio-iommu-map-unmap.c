@@ -34,7 +34,7 @@ int main(int argc, char **argv)
 	const char *devname;
 	int ret, container;
 	unsigned long i, count, map_size, max_cycles, nr_chunks, stride;
-	long slab_before;
+	long slab_before, slab_delta = 0;
 	void **maps;
 	struct vfio_iommu_type1_dma_map dma_map = {
 		.argsz = sizeof(dma_map)
@@ -105,14 +105,18 @@ int main(int argc, char **argv)
 			}
 			if (count) {
 				printf("\t%ld\n", count);
-				//return 0;
+				if (!verbose) {
+					printf("|");
+					fflush(stdout);
+				}
 			}
-			printf("|");
-			fflush(stdout);
 		}
 
 		if (count == 0)
 			slab_before = slab_sunreclaim_kb();
+
+		if (verbose)
+			printf("cycle %lu/%lu: map ", count + 1, max_cycles);
 
 		/* Map MAP_CHUNK at a time, each chunk is pinned on map, so THP can't do anything until unmap */
 		for (i = dma_map.iova = 0; i < nr_chunks; i++, dma_map.iova += stride) {
@@ -141,14 +145,21 @@ int main(int argc, char **argv)
 					strerror(errno));
 				return 1;
 			}
+			if (verbose && nr_chunks > 100 &&
+			    (i + 1) * 10 / nr_chunks != i * 10 / nr_chunks) {
+				printf(".");
+				fflush(stdout);
+			}
 		}
 
-		printf("+");
-		fflush(stdout);
+		if (!verbose) {
+			printf("+");
+			fflush(stdout);
+		} else
+			printf(" unmap ");
 
 		if (count == 0)
-			printf("\nIOMMU memory: ~%ldMB\n",
-			       (slab_sunreclaim_kb() - slab_before) / 1024);
+			slab_delta = slab_sunreclaim_kb() - slab_before;
 
 		/* Unmap everything at once */
 		ret = ioctl(container, VFIO_IOMMU_UNMAP_DMA, &dma_unmap);
@@ -157,9 +168,15 @@ int main(int argc, char **argv)
 			return 1;
 		}
 
-		printf("-");
+		if (!verbose) {
+			printf("-");
+		} else
+			printf("done\n");
 		fflush(stdout);
 	}
+
+	if (slab_delta)
+		printf("\nIOMMU page tables: ~%ldMB per cycle\n", slab_delta / 1024);
 
 	printf("\n%lu mappings, Success\n", nr_chunks);
 	return 0;

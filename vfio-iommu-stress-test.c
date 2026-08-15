@@ -150,7 +150,7 @@ int main(int argc, char **argv)
 	}
 	printf("\b\b\b\b100%%\n");
 
-	printf("IOMMU memory: ~%ldMB\n",
+	printf("IOMMU page tables: ~%ldMB\n",
 	       (slab_sunreclaim_kb() - slab_before) / 1024);
 
 	printf("Unmapping:   0%%");
