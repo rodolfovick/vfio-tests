@@ -55,6 +55,15 @@ int main(int argc, char **argv)
 	stride = argc > 4 ? strtoul(argv[4], NULL, 0) * 1024 : MAP_CHUNK;
 	nr_chunks = map_size / MAP_CHUNK;
 
+	long entry_limit = vfio_dma_entry_limit();
+	if (entry_limit && nr_chunks > entry_limit) {
+		printf("map_size %luMB needs %lu mappings but dma_entry_limit is %ld\n",
+		       map_size / (1024 * 1024), nr_chunks, entry_limit);
+		printf("increase with: echo %lu > /sys/module/vfio_iommu_type1/parameters/dma_entry_limit\n",
+		       nr_chunks);
+		return -1;
+	}
+
 	if (vfio_device_attach(devname, &container, NULL, NULL))
 		return -1;
 

@@ -104,6 +104,19 @@ long slab_sunreclaim_kb(void)
 	return val;
 }
 
+long vfio_dma_entry_limit(void)
+{
+	FILE *f;
+	long val = 0;
+
+	f = fopen("/sys/module/vfio_iommu_type1/parameters/dma_entry_limit", "r");
+	if (!f)
+		return 0;
+	fscanf(f, "%ld", &val);
+	fclose(f);
+	return val;
+}
+
 unsigned int vfio_pci_vendor(const char *devname)
 {
 	char path[PATH_MAX];

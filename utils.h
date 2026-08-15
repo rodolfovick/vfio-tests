@@ -42,6 +42,7 @@ int vfio_pci_is_vf(const char *devname);
 int vfio_pci_is_vga(const char *devname);
 int vfio_pci_is_d3(const char *devname);
 long slab_sunreclaim_kb(void);
+long vfio_dma_entry_limit(void);
 unsigned int vfio_pci_vendor(const char *devname);
 
 void *mmap_align(void *addr, size_t length, int prot, int flags,

@@ -57,6 +57,16 @@ int main(int argc, char **argv)
 	devname = argv[1];
 	map_max = argc > 2 ? strtoul(argv[2], NULL, 0) : MAP_MAX_DEFAULT;
 
+	unsigned long nr_mappings = map_max * (MAP_SIZE / DMA_CHUNK);
+	long entry_limit = vfio_dma_entry_limit();
+	if (entry_limit && nr_mappings > entry_limit) {
+		printf("map_max %lu needs %lu mappings but dma_entry_limit is %ld\n",
+		       map_max, nr_mappings, entry_limit);
+		printf("increase with: echo %lu > /sys/module/vfio_iommu_type1/parameters/dma_entry_limit\n",
+		       nr_mappings);
+		return -1;
+	}
+
 	if (vfio_device_attach(devname, &container, NULL, NULL))
 		return -1;
 
