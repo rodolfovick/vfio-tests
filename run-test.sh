@@ -51,28 +51,30 @@ setup_hugepages() {
 detect_iommu
 setup_hugepages
 
+logfile="run-test.log"
+> "$logfile"
+
 pass=0
 fail=0
 skip=0
 failures=""
 
 run_test() {
-    echo "--- $1 ---"
-    "$@"
-    rc=$?
     name=$1
+    echo "--- $name ---" >> "$logfile"
+    "$@" >> "$logfile" 2>&1
+    rc=$?
     if [ $rc -eq 0 ]; then
 	pass=$((pass + 1))
-	echo "PASS: $name"
+	printf "  %-45s PASS\n" "$name"
     elif [ $rc -eq 77 ]; then
 	skip=$((skip + 1))
-	echo "SKIP: $name"
+	printf "  %-45s SKIP\n" "$name"
     else
 	fail=$((fail + 1))
 	failures="$failures $name"
-	echo "FAIL: $name (exit code $rc)"
+	printf "  %-45s FAIL (exit code $rc)\n" "$name"
     fi
-    echo ""
 }
 
 # Device open (legacy group API)
@@ -111,7 +113,7 @@ run_test ./vfio-pci-hot-reset $device
 run_test ./vfio-pci-device-migration $device
 run_test ./vfio-pci-device-migration-stress $device
 
-echo "=== Summary ==="
+echo ""
 total=$((pass + fail + skip))
 echo "$total tests: $pass passed, $fail failed, $skip skipped"
 if [ -n "$failures" ]; then
