@@ -27,30 +27,45 @@
 
 #include "utils.h"
 
-#define LOOPS 1000000
+#define DEFAULT_CYCLES 1000000
 
 void usage(char *name)
 {
-	printf("usage: %s <ssss:bb:dd.f>\n", name);
+	printf("usage: %s [options] <ssss:bb:dd.f>\n", name);
+	printf("\t-c cycles  mmap/munmap cycles per BAR phase (default %d)\n",
+	       DEFAULT_CYCLES);
 	printf("\nTest BAR mmap alignment at various power-of-2 sizes\n");
 }
 
 int main(int argc, char **argv)
 {
 	const char *devname;
-	int container, device;
+	int opt, container, device;
 	int i, j, ret, min_align = __builtin_ctzll(getpagesize());
+	int cycles = DEFAULT_CYCLES;
 	unsigned long mask;
 	void *map;
 	struct vfio_device_info device_info = {	.argsz = sizeof(device_info) };
 	struct vfio_region_info region_info = { .argsz = sizeof(region_info) };
 
-	if (argc < 2) {
+	while ((opt = getopt(argc, argv, "c:h")) != -1) {
+		switch (opt) {
+		case 'c':
+			cycles = atoi(optarg);
+			break;
+		case 'h':
+		default:
+			usage(argv[0]);
+			return opt == 'h' ? 0 : -1;
+		}
+	}
+
+	if (optind >= argc) {
 		usage(argv[0]);
 		return -1;
 	}
 
-	devname = argv[1];
+	devname = argv[optind];
 
 	if (vfio_device_attach(devname, &container, &device, NULL))
 		return -1;
@@ -96,7 +111,7 @@ int main(int argc, char **argv)
 		mask = 0;
 
 		printf("Testing BAR%d, require at least %d bit alignment\n", i, min_align);
-		for (j = 0; j < LOOPS; j++) {
+		for (j = 0; j < cycles; j++) {
 			map = mmap_align(NULL, (size_t)region_info.size, PROT_READ | PROT_WRITE, MAP_SHARED,
 					device, (off_t)region_info.offset, 1UL << min_align);
 			if (map == MAP_FAILED) {
@@ -115,7 +130,7 @@ int main(int argc, char **argv)
 		printf("[PASS] Minimum alignment %d\n", __builtin_ctzll(mask));
 
 		printf("Testing random offset\n");
-		for (j = 0; j < LOOPS; j++) {
+		for (j = 0; j < cycles; j++) {
 			int req_align;
 			unsigned long pgs = region_info.size >> 12;
 			loff_t offset;
@@ -151,7 +166,7 @@ int main(int argc, char **argv)
 		printf("[PASS] Random offset\n");
 
 		printf("Testing random size\n");
-		for (j = 0; j < LOOPS; j++) {
+		for (j = 0; j < cycles; j++) {
 			int req_align;
 			unsigned long pgs = region_info.size >> 12;
 			size_t unmapped, size;
