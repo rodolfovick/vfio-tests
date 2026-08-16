@@ -152,26 +152,37 @@ err_devfd:
 
 void usage(char *name)
 {
-	printf("usage: %s <ssss:bb:dd.f> [cycles]\n", name);
-	printf("\tcycles: migration cycles (default 10)\n");
+	printf("usage: %s [options] <ssss:bb:dd.f>\n", name);
+	printf("\t-c cycles  migration cycles (default %d)\n",
+	       DEFAULT_CYCLES);
 	printf("\nMigration state cycle stress test (iommufd)\n");
 }
 
 int main(int argc, char **argv)
 {
 	const char *devname;
-	int cycles = DEFAULT_CYCLES;
+	int opt, cycles = DEFAULT_CYCLES;
 	int devfd, iommufd;
 	int i, ret = 0;
 
-	if (argc < 2) {
+	while ((opt = getopt(argc, argv, "c:h")) != -1) {
+		switch (opt) {
+		case 'c':
+			cycles = atoi(optarg);
+			break;
+		case 'h':
+		default:
+			usage(argv[0]);
+			return opt == 'h' ? 0 : -1;
+		}
+	}
+
+	if (optind >= argc) {
 		usage(argv[0]);
 		return -1;
 	}
 
-	devname = argv[1];
-	if (argc > 2)
-		cycles = atoi(argv[2]);
+	devname = argv[optind];
 
 	if (open_device(devname, &devfd, &iommufd))
 		return -1;
