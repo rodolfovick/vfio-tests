@@ -33,17 +33,17 @@ static const size_t default_pagesizes[] = {
 	0,
 };
 
-static int parse_pagesizes(int argc, char **argv, size_t *out)
+static int parse_pagesizes(int argc, char **argv, int start, size_t *out)
 {
-	int i, j, n = MIN(argc - 3, 3);
+	int i, j, n = MIN(argc - start, 3);
 
 	for (i = 0; i < n; i++) {
-		out[i] = strtoul(argv[3 + i], NULL, 0) * 1024;
+		out[i] = strtoul(argv[start + i], NULL, 0) * 1024;
 		for (j = 0; default_pagesizes[j]; j++)
 			if (out[i] == default_pagesizes[j])
 				break;
 		if (!default_pagesizes[j]) {
-			printf("Invalid page size: %sKB\n", argv[3 + i]);
+			printf("Invalid page size: %sKB\n", argv[start + i]);
 			return -1;
 		}
 	}
@@ -53,8 +53,8 @@ static int parse_pagesizes(int argc, char **argv, size_t *out)
 
 void usage(char *name)
 {
-	printf("usage: %s <ssss:bb:dd.f> [iterations] [4|2048|1048576 ...]\n", name);
-	printf("\titerations: fault timing iterations (default 10)\n");
+	printf("usage: %s [options] <ssss:bb:dd.f> [4|2048|1048576 ...]\n", name);
+	printf("\t-c cycles  fault timing cycles (default %d)\n", ITERATIONS);
 	printf("\tpage sizes: in KB, one or more of 4, 2048, 1048576\n");
 	printf("\nMeasure BAR mmap page fault latency at PTE/PMD/PUD sizes\n");
 }
@@ -136,26 +136,35 @@ static void do_fault_timing(int device, struct vfio_region_info *region,
 int main(int argc, char **argv)
 {
 	const char *devname;
-	int container, device;
+	int opt, container, device;
 	int i, ret;
-	int iterations = ITERATIONS;
+	int cycles = ITERATIONS;
 	struct vfio_device_info device_info = { .argsz = sizeof(device_info) };
 	struct vfio_region_info region_info = { .argsz = sizeof(region_info) };
 	const size_t *pagesizes = default_pagesizes;
 	size_t cmd_pagesizes[4];
 
-	if (argc < 2) {
+	while ((opt = getopt(argc, argv, "c:h")) != -1) {
+		switch (opt) {
+		case 'c':
+			cycles = atoi(optarg);
+			break;
+		case 'h':
+		default:
+			usage(argv[0]);
+			return opt == 'h' ? 0 : 1;
+		}
+	}
+
+	if (optind >= argc) {
 		usage(argv[0]);
 		return 1;
 	}
 
-	devname = argv[1];
+	devname = argv[optind];
 
-	if (argc > 2)
-		iterations = atoi(argv[2]);
-
-	if (argc > 3) {
-		if (parse_pagesizes(argc, argv, cmd_pagesizes))
+	if (optind + 1 < argc) {
+		if (parse_pagesizes(argc, argv, optind + 1, cmd_pagesizes))
 			return 1;
 		pagesizes = cmd_pagesizes;
 	}
@@ -185,7 +194,7 @@ int main(int argc, char **argv)
 		printf("WARNING: device %s is in D3 state, MMIO timing will be degraded\n",
 		       devname);
 
-	printf("Device %s, %d iterations per test\n", devname, iterations);
+	printf("Device %s, %d cycles per test\n", devname, cycles);
 
 	for (i = 0; i < VFIO_PCI_ROM_REGION_INDEX; i++) {
 		const size_t *pgsz;
@@ -209,7 +218,7 @@ int main(int argc, char **argv)
 		for (pgsz = &pagesizes[0]; *pgsz; pgsz++) {
 			if (*pgsz > region_info.size)
 				continue;
-			do_fault_timing(device, &region_info, i, *pgsz, iterations);
+			do_fault_timing(device, &region_info, i, *pgsz, cycles);
 		}
 	}
 
