@@ -32,16 +32,17 @@
 
 void usage(char *name)
 {
-	printf("usage: %s <ssss:bb:dd.f> [hugepage path | guest_gb] [guest_gb]\n", name);
-	printf("\thugepage path: hugepage mount point (default /dev/hugepages)\n");
-	printf("\tguest_gb:      guest memory size in GB (default 1024)\n");
+	printf("usage: %s [options] <ssss:bb:dd.f>\n", name);
+	printf("\t-m path  hugepage mount point (default /dev/hugepages)\n");
+	printf("\t-g gb    guest memory size in GB (default %lu)\n",
+	       DEFAULT_GUEST_GB);
 	printf("\nHugepage guest memory DMA mapping test\n");
 }
 
 int main(int argc, char **argv)
 {
 	const char *devname;
-	int ret, container, fd = -1;
+	int opt, ret, container, fd = -1;
 	char path[PATH_MAX + NAME_MAX + sizeof("/.XXXXXX")];
 	char mempath[PATH_MAX] = "";
 	unsigned long vaddr;
@@ -52,12 +53,27 @@ int main(int argc, char **argv)
 		.argsz = sizeof(dma_map)
 	};
 
-	if (argc < 2) {
+	while ((opt = getopt(argc, argv, "m:g:h")) != -1) {
+		switch (opt) {
+		case 'm':
+			strncpy(mempath, optarg, sizeof(mempath) - 1);
+			break;
+		case 'g':
+			guest_gb = strtoul(optarg, NULL, 0);
+			break;
+		case 'h':
+		default:
+			usage(argv[0]);
+			return opt == 'h' ? 0 : -1;
+		}
+	}
+
+	if (optind >= argc) {
 		usage(argv[0]);
 		return -1;
 	}
 
-	devname = argv[1];
+	devname = argv[optind];
 
 	if (vfio_pci_is_vf(devname)) {
 		printf("Skipping: %s is a VF\n", devname);
@@ -66,18 +82,6 @@ int main(int argc, char **argv)
 
 	if (vfio_device_attach(devname, &container, NULL, NULL))
 		return -1;
-
-	if (argc > 2) {
-		char *endp;
-		unsigned long val = strtoul(argv[2], &endp, 0);
-		if (*endp == '\0' && val > 0)
-			guest_gb = val;
-		else
-			strncpy(mempath, argv[2], sizeof(mempath) - 1);
-	}
-
-	if (argc > 3)
-		guest_gb = strtoul(argv[3], NULL, 0);
 	if (guest_gb < mmap_gb)
 		mmap_gb = guest_gb;
 	mmap_size = mmap_gb * 1024 * 1024 * 1024;
