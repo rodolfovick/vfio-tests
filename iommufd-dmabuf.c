@@ -41,28 +41,39 @@ struct vfio_device_feature_dma_buf {
 
 void usage(char *name)
 {
-	printf("usage: %s <src ssss:bb:dd.f> [dst ssss:bb:dd.f]\n", name);
-	printf("\tWithout dst: export all mmappable BARs and self-map dma-buf\n");
-	printf("\tWith dst:    export src BARs, map into dst IOAS (P2P)\n");
+	printf("usage: %s [options] <ssss:bb:dd.f>\n", name);
+	printf("\t-d BDF  destination device for P2P mapping\n");
+	printf("\tWithout -d: export all mmappable BARs and self-map dma-buf\n");
+	printf("\tWith -d:    export src BARs, map into dst IOAS (P2P)\n");
 	printf("\nTest VFIO dma-buf BAR export and P2P mapping via iommufd\n");
 }
 
 int main(int argc, char **argv)
 {
 	const char *src_name, *dst_name = NULL;
-	int i, src_device, dst_device, iommufd, ret;
+	int opt, i, src_device, dst_device, iommufd, ret;
 	int src_ioas, dst_ioas;
 	struct vfio_device_info device_info = { .argsz = sizeof(device_info) };
 	struct vfio_region_info region_info = { .argsz = sizeof(region_info) };
 
-	if (argc < 2) {
+	while ((opt = getopt(argc, argv, "d:h")) != -1) {
+		switch (opt) {
+		case 'd':
+			dst_name = optarg;
+			break;
+		case 'h':
+		default:
+			usage(argv[0]);
+			return opt == 'h' ? 0 : -1;
+		}
+	}
+
+	if (optind >= argc) {
 		usage(argv[0]);
 		return -1;
 	}
 
-	src_name = argv[1];
-	if (argc > 2)
-		dst_name = argv[2];
+	src_name = argv[optind];
 
 	iommufd = open("/dev/iommu", O_RDWR);
 	if (iommufd < 0) {
