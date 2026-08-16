@@ -27,9 +27,13 @@
 
 #include "utils.h"
 
+#define DEFAULT_CYCLES 100000
+
 void usage(char *name)
 {
-	printf("usage: %s <ssss:bb:dd.f>\n", name);
+	printf("usage: %s [options] <ssss:bb:dd.f>\n", name);
+	printf("\t-c cycles  race iterations per BAR (default %d)\n",
+	       DEFAULT_CYCLES);
 	printf("\nRace test for huge page BAR mmap faults (legacy group)\n");
 }
 
@@ -45,11 +49,12 @@ static void *thread_func(void *map)
 	return NULL;
 }
 
-static void do_race(int device, struct vfio_region_info *region, size_t pagesz)
+static void do_race(int device, struct vfio_region_info *region, size_t pagesz,
+		    int cycles)
 {
 	int i;
 
-	for (i = 0; i < 100000;) {
+	for (i = 0; i < cycles;) {
 		pthread_t thread1, thread2;
 		void *map;
 		
@@ -79,8 +84,9 @@ static void do_race(int device, struct vfio_region_info *region, size_t pagesz)
 int main(int argc, char **argv)
 {
 	const char *devname;
-	int container, device;
+	int opt, container, device;
 	int region, ret;
+	int cycles = DEFAULT_CYCLES;
 	struct vfio_device_info device_info = {	.argsz = sizeof(device_info) };
 	struct vfio_region_info region_info = { .argsz = sizeof(region_info) };
 	size_t *pgsize, pgsizes[] = {
@@ -90,12 +96,24 @@ int main(int argc, char **argv)
 		0
 	};
 
-	if (argc < 2) {
+	while ((opt = getopt(argc, argv, "c:h")) != -1) {
+		switch (opt) {
+		case 'c':
+			cycles = atoi(optarg);
+			break;
+		case 'h':
+		default:
+			usage(argv[0]);
+			return opt == 'h' ? 0 : 1;
+		}
+	}
+
+	if (optind >= argc) {
 		usage(argv[0]);
 		return 1;
 	}
 
-	devname = argv[1];
+	devname = argv[optind];
 
 	if (vfio_pci_is_vf(devname)) {
 		printf("Skipping: %s is a VF\n", devname);
@@ -137,7 +155,7 @@ int main(int argc, char **argv)
 			printf("Using BAR%d (size %ldMB) for %ldMB page size test\n", region,
 					(unsigned long)region_info.size >> 20, *pgsize >> 20);
 
-			do_race(device, &region_info, *pgsize);
+			do_race(device, &region_info, *pgsize, cycles);
 			break;
 		}
 
