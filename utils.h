@@ -44,6 +44,7 @@ int vfio_pci_is_vga(const char *devname);
 int vfio_pci_is_d3(const char *devname);
 long slab_sunreclaim_kb(void);
 long vfio_dma_entry_limit(void);
+int vfio_dma_entry_limit_check(unsigned long nr_mappings);
 int vfio_noiommu_enabled(void);
 int vfio_device_get_groupid(const char *devname);
 int vfio_group_open(int groupid, bool noiommu);

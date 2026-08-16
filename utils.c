@@ -104,17 +104,34 @@ long slab_sunreclaim_kb(void)
 	return val;
 }
 
+#define VFIO_DMA_ENTRY_LIMIT_PATH \
+	"/sys/module/vfio_iommu_type1/parameters/dma_entry_limit"
+
 long vfio_dma_entry_limit(void)
 {
 	FILE *f;
 	long val = 0;
 
-	f = fopen("/sys/module/vfio_iommu_type1/parameters/dma_entry_limit", "r");
+	f = fopen(VFIO_DMA_ENTRY_LIMIT_PATH, "r");
 	if (!f)
 		return 0;
 	fscanf(f, "%ld", &val);
 	fclose(f);
 	return val;
+}
+
+int vfio_dma_entry_limit_check(unsigned long nr_mappings)
+{
+	long limit = vfio_dma_entry_limit();
+
+	if (!limit || nr_mappings <= limit)
+		return 0;
+
+	printf("Need %lu mappings but dma_entry_limit is %ld\n",
+	       nr_mappings, limit);
+	printf("increase with: echo %lu > " VFIO_DMA_ENTRY_LIMIT_PATH "\n",
+	       nr_mappings);
+	return -1;
 }
 
 int vfio_noiommu_enabled(void)
