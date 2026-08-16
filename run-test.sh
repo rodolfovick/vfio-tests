@@ -91,7 +91,7 @@ run_test ./iommufd-dmabuf $device
 # DMA mapping
 run_test ./vfio-pci-device-dma-map $device
 run_test ./vfio-pci-device-map-alignment $device
-run_test ./vfio-correctness-tests $device /dev/hugepages
+run_test ./vfio-correctness-tests -m /dev/hugepages $device
 run_test ./vfio-iommu-map-unmap $device
 run_test ./vfio-iommu-stress-test -c $map_max $device
 

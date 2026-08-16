@@ -28,8 +28,8 @@
 
 void usage(char *name)
 {
-	printf("usage: %s <ssss:bb:dd.f> [memory path]\n", name);
-	printf("\tmemory path: hugepage mount point for DMA buffers\n");
+	printf("usage: %s [options] <ssss:bb:dd.f>\n", name);
+	printf("\t-m path  hugepage mount point for DMA buffers\n");
 	printf("\nDMA correctness tests with hugepage backing\n");
 }
 
@@ -330,30 +330,34 @@ int hugepage_test(int fd, unsigned long vaddr,
 int main(int argc, char **argv)
 {
 	const char *devname;
-	int ret, container, fd = -1;
+	int opt, ret, container, fd = -1;
 	char path[PATH_MAX + NAME_MAX + sizeof("/.XXXXXX")];
 	char mempath[PATH_MAX] = "";
 	unsigned long vaddr;
 	struct statfs fs;
 	long hugepagesize, pagesize, mapsize;
 
-	if (argc < 2) {
+	while ((opt = getopt(argc, argv, "m:h")) != -1) {
+		switch (opt) {
+		case 'm':
+			strncpy(mempath, optarg, sizeof(mempath) - 1);
+			break;
+		case 'h':
+		default:
+			usage(argv[0]);
+			return opt == 'h' ? 0 : -1;
+		}
+	}
+
+	if (optind >= argc) {
 		usage(argv[0]);
 		return -1;
 	}
 
-	devname = argv[1];
+	devname = argv[optind];
 
 	if (vfio_device_attach(devname, &container, NULL, NULL))
 		return -1;
-
-	if (argc > 2) {
-		ret = sscanf(argv[2], "%s", mempath);
-		if (ret != 1) {
-			usage(argv[0]);
-			return -1;
-		}
-	}
 
 	hugepagesize = pagesize = getpagesize();
 
