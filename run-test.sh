@@ -93,7 +93,7 @@ run_test ./vfio-pci-device-dma-map $device
 run_test ./vfio-pci-device-map-alignment $device
 run_test ./vfio-correctness-tests $device /dev/hugepages
 run_test ./vfio-iommu-map-unmap $device 255 40
-run_test ./vfio-iommu-stress-test $device $map_max
+run_test ./vfio-iommu-stress-test -c $map_max $device
 
 # BAR fault timing
 run_test ./vfio-pci-bar-fault-timing $device

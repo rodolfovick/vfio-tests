@@ -26,22 +26,29 @@
 
 #define MAP_SIZE (1UL * 1024 * 1024 * 1024)
 #define MAP_MAX_DEFAULT 127
+/*
+ * 2MB aligns with the PMD/THP boundary to stress IOMMU page table
+ * coalescing
+ */
 #define DMA_CHUNK (2UL * 1024 * 1024)
 
 void usage(char *name)
 {
-	printf("usage: %s <ssss:bb:dd.f> [map_max]\n", name);
-	printf("\tmap_max: number of 1GB IOVA iterations (default 127)\n");
+	printf("usage: %s [options] <ssss:bb:dd.f>\n", name);
+	printf("\t-c iterations  number of 1GB IOVA iterations (default %d)\n",
+	       MAP_MAX_DEFAULT);
+	printf("\t-s             sequential mode (default is interleaved)\n");
 	printf("\nInterleaved 2MB DMA mapping stress test (legacy container)\n");
 }
 
 int main(int argc, char **argv)
 {
 	const char *devname;
-	int container;
+	int opt, container;
 	unsigned long i, j, vaddr, map_max;
 	long slab_before;
 	int ret;
+	int sequential = 0;
 	struct vfio_iommu_type1_dma_map dma_map = {
 		.argsz = sizeof(dma_map)
 	};
@@ -49,13 +56,29 @@ int main(int argc, char **argv)
 		.argsz = sizeof(dma_unmap)
 	};
 
-	if (argc < 2) {
+	map_max = MAP_MAX_DEFAULT;
+
+	while ((opt = getopt(argc, argv, "c:sh")) != -1) {
+		switch (opt) {
+		case 'c':
+			map_max = strtoul(optarg, NULL, 0);
+			break;
+		case 's':
+			sequential = 1;
+			break;
+		case 'h':
+		default:
+			usage(argv[0]);
+			return opt == 'h' ? 0 : -1;
+		}
+	}
+
+	if (optind >= argc) {
 		usage(argv[0]);
 		return -1;
 	}
 
-	devname = argv[1];
-	map_max = argc > 2 ? strtoul(argv[2], NULL, 0) : MAP_MAX_DEFAULT;
+	devname = argv[optind];
 
 	if (vfio_dma_entry_limit_check(map_max * (MAP_SIZE / DMA_CHUNK)))
 		return -1;
@@ -76,8 +99,9 @@ int main(int argc, char **argv)
 
 	slab_before = slab_sunreclaim_kb();
 
-	printf("map_max=%lu iterations (%luGB IOVA range)\n",
-	       map_max, map_max * (MAP_SIZE >> 30));
+	printf("%lu iterations, chunk=%luMB, IOVA range=%luGB, %s\n",
+	       map_max, DMA_CHUNK >> 20, map_max * (MAP_SIZE >> 30),
+	       sequential ? "sequential" : "interleaved");
 	printf("Mapping:   0%%");
 	fflush(stdout);
 	for (i = 0; i < map_max; i++) {
@@ -86,55 +110,68 @@ int main(int argc, char **argv)
 		if (!(i % 3))
 			continue;
 
-		for (j = 0; j < MAP_SIZE / DMA_CHUNK; j += 4) {
-			dma_map.iova = (i * MAP_SIZE) + (j * DMA_CHUNK);
-			dma_map.vaddr = vaddr + (j * DMA_CHUNK);
+		if (sequential) {
+			for (j = 0; j < MAP_SIZE / DMA_CHUNK; j++) {
+				dma_map.iova = (i * MAP_SIZE) + (j * DMA_CHUNK);
+				dma_map.vaddr = vaddr + (j * DMA_CHUNK);
 
-			ret = ioctl(container, VFIO_IOMMU_MAP_DMA, &dma_map);
-			if (ret) {
-				printf("Failed to map memory %ld/%ld (%s)\n",
-				       i, j, strerror(errno));
-				return 1;
+				ret = ioctl(container, VFIO_IOMMU_MAP_DMA, &dma_map);
+				if (ret) {
+					printf("Failed to map memory %ld/%ld (%s)\n",
+					       i, j, strerror(errno));
+					return 1;
+				}
+			}
+		} else {
+			/* Map in order 0,4,8... 1,5,9... 3,7,11... 2,6,10... */
+			for (j = 0; j < MAP_SIZE / DMA_CHUNK; j += 4) {
+				dma_map.iova = (i * MAP_SIZE) + (j * DMA_CHUNK);
+				dma_map.vaddr = vaddr + (j * DMA_CHUNK);
+
+				ret = ioctl(container, VFIO_IOMMU_MAP_DMA, &dma_map);
+				if (ret) {
+					printf("Failed to map memory %ld/%ld (%s)\n",
+					       i, j, strerror(errno));
+					return 1;
+				}
+			}
+
+			for (j = 1; j < MAP_SIZE / DMA_CHUNK; j += 4) {
+				dma_map.iova = (i * MAP_SIZE) + (j * DMA_CHUNK);
+				dma_map.vaddr = vaddr + (j * DMA_CHUNK);
+
+				ret = ioctl(container, VFIO_IOMMU_MAP_DMA, &dma_map);
+				if (ret) {
+					printf("Failed to map memory %ld/%ld (%s)\n",
+					       i, j, strerror(errno));
+					return 1;
+				}
+			}
+
+			for (j = 3; j < MAP_SIZE / DMA_CHUNK; j += 4) {
+				dma_map.iova = (i * MAP_SIZE) + (j * DMA_CHUNK);
+				dma_map.vaddr = vaddr + (j * DMA_CHUNK);
+
+				ret = ioctl(container, VFIO_IOMMU_MAP_DMA, &dma_map);
+				if (ret) {
+					printf("Failed to map memory %ld/%ld (%s)\n",
+					       i, j, strerror(errno));
+					return 1;
+				}
+			}
+
+			for (j = 2; j < MAP_SIZE / DMA_CHUNK; j += 4) {
+				dma_map.iova = (i * MAP_SIZE) + (j * DMA_CHUNK);
+				dma_map.vaddr = vaddr + (j * DMA_CHUNK);
+
+				ret = ioctl(container, VFIO_IOMMU_MAP_DMA, &dma_map);
+				if (ret) {
+					printf("Failed to map memory %ld/%ld (%s)\n",
+					       i, j, strerror(errno));
+					return 1;
+				}
 			}
 		}
-
-#if 1
-		for (j = 1; j < MAP_SIZE / DMA_CHUNK; j += 4) {
-			dma_map.iova = (i * MAP_SIZE) + (j * DMA_CHUNK);
-			dma_map.vaddr = vaddr + (j * DMA_CHUNK);
-
-			ret = ioctl(container, VFIO_IOMMU_MAP_DMA, &dma_map);
-			if (ret) {
-				printf("Failed to map memory %ld/%ld (%s)\n",
-				       i, j, strerror(errno));
-				return 1;
-			}
-		}
-
-		for (j = 3; j < MAP_SIZE / DMA_CHUNK; j += 4) {
-			dma_map.iova = (i * MAP_SIZE) + (j * DMA_CHUNK);
-			dma_map.vaddr = vaddr + (j * DMA_CHUNK);
-
-			ret = ioctl(container, VFIO_IOMMU_MAP_DMA, &dma_map);
-			if (ret) {
-				printf("Failed to map memory %ld/%ld (%s)\n",
-				       i, j, strerror(errno));
-				return 1;
-			}
-		}
-
-		for (j = 2; j < MAP_SIZE / DMA_CHUNK; j += 4) {
-			dma_map.iova = (i * MAP_SIZE) + (j * DMA_CHUNK);
-			dma_map.vaddr = vaddr + (j * DMA_CHUNK);
-
-			ret = ioctl(container, VFIO_IOMMU_MAP_DMA, &dma_map);
-			if (ret) {
-				printf("Failed to map memory %ld/%ld (%s)\n",
-				       i, j, strerror(errno));
-				return 1;
-			}
-		}
-#endif
 
 		if (((i + 1) * 100)/map_max != (i * 100)/map_max) {
 			printf("\b\b\b\b%3ld%%", (i * 100)/map_max);
@@ -154,32 +191,45 @@ int main(int argc, char **argv)
 		if (!(i % 3))
 			continue;
 
-		for (j = 0; j < MAP_SIZE / DMA_CHUNK / 2; j += 2) {
-			dma_unmap.iova = (i * MAP_SIZE) + (j * DMA_CHUNK);
+		if (sequential) {
+			for (j = 0; j < MAP_SIZE / DMA_CHUNK; j++) {
+				dma_unmap.iova = (i * MAP_SIZE) + (j * DMA_CHUNK);
 
-			ret = ioctl(container,
-				    VFIO_IOMMU_UNMAP_DMA, &dma_unmap);
-			if (ret) {
-				printf("Failed to unmap memory %ld/%ld (%s)\n",
-				       i, j, strerror(errno));
-				return 1;
+				ret = ioctl(container,
+					    VFIO_IOMMU_UNMAP_DMA, &dma_unmap);
+				if (ret) {
+					printf("Failed to unmap memory %ld/%ld (%s)\n",
+					       i, j, strerror(errno));
+					return 1;
+				}
+			}
+		} else {
+			/* Unmap first half forward by 2, second half backward by 2 */
+			for (j = 0; j < MAP_SIZE / DMA_CHUNK / 2; j += 2) {
+				dma_unmap.iova = (i * MAP_SIZE) + (j * DMA_CHUNK);
+
+				ret = ioctl(container,
+					    VFIO_IOMMU_UNMAP_DMA, &dma_unmap);
+				if (ret) {
+					printf("Failed to unmap memory %ld/%ld (%s)\n",
+					       i, j, strerror(errno));
+					return 1;
+				}
+			}
+
+			for (j = (MAP_SIZE / DMA_CHUNK) - 1;
+			     j > MAP_SIZE / DMA_CHUNK / 2; j -= 2) {
+				dma_unmap.iova = (i * MAP_SIZE) + (j * DMA_CHUNK);
+
+				ret = ioctl(container,
+					    VFIO_IOMMU_UNMAP_DMA, &dma_unmap);
+				if (ret) {
+					printf("Failed to unmap memory %ld/%ld (%s)\n",
+					       i, j, strerror(errno));
+					return 1;
+				}
 			}
 		}
-
-#if 1
-		for (j = (MAP_SIZE / DMA_CHUNK) - 1;
-		     j > MAP_SIZE / DMA_CHUNK / 2; j -= 2) {
-			dma_unmap.iova = (i * MAP_SIZE) + (j * DMA_CHUNK);
-
-			ret = ioctl(container,
-				    VFIO_IOMMU_UNMAP_DMA, &dma_unmap);
-			if (ret) {
-				printf("Failed to unmap memory %ld/%ld (%s)\n",
-				       i, j, strerror(errno));
-				return 1;
-			}
-		}
-#endif
 
 		if (((i + 1) * 100)/map_max != (i * 100)/map_max) {
 			printf("\b\b\b\b%3ld%%", (i * 100)/map_max);
