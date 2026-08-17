@@ -46,6 +46,7 @@ Set `VFIO_VERBOSE=1` for detailed output.
 | `vfio-pci-hot-reset` | PCI hot reset via VFIO (legacy group) |
 | `vfio-pci-device-migration` | Query device migration and dirty tracking capabilities |
 | `vfio-pci-device-migration-stress` | Migration state cycle stress test (iommufd) |
+| `iova-stress.sh` | IOVA stress test across large address ranges (default 45TB) |
 
 ## License
 
