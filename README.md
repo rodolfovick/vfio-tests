@@ -48,6 +48,19 @@ Set `VFIO_VERBOSE=1` for detailed output.
 | `vfio-pci-device-migration-stress` | Migration state cycle stress test (iommufd) |
 | `iova-stress.sh` | IOVA stress test across large address ranges (default 45TB) |
 
+## Tools
+
+### vfio-check-alignment
+
+This tool verifies VFIO BAR mmap alignment.
+
+To run the script, you need to start a domain with a VFIO device and pass the domain memory 
+map information to the script. Example:
+
+`Assuming PID as QEMU domain's process id.`
+
+    cat /proc/{PID}/maps | grep vfio | ./vfio-check-alignment.py
+
 ## License
 
 GPLv2 -- see `COPYING`.
