@@ -137,6 +137,32 @@ static int test_export_bars(int src_device, int iommufd,
 	return 0;
 }
 
+static int test_export_invalid_indices(int device)
+{
+	int invalid_indices[] = {
+		VFIO_PCI_ROM_REGION_INDEX,
+		VFIO_PCI_ROM_REGION_INDEX + 1,
+		0xff,
+	};
+	int i, ret;
+
+	printf("\nTesting dma-buf rejection for invalid region indices\n\n");
+
+	for (i = 0; i < (int)(sizeof(invalid_indices) / sizeof(invalid_indices[0])); i++) {
+		printf("Region index %d (out of range)\n", invalid_indices[i]);
+
+		ret = try_dmabuf_export(device, invalid_indices[i], 4096);
+		if (ret >= 0) {
+			printf("\t[FAIL] dma-buf export should have been rejected\n");
+			close(ret);
+			return -1;
+		}
+		printf("\t[PASS] rejected (%s)\n", strerror(errno));
+	}
+
+	return 0;
+}
+
 void usage(char *name)
 {
 	printf("usage: %s [options] <ssss:bb:dd.f>\n", name);
@@ -209,6 +235,10 @@ int main(int argc, char **argv)
 
 	ret = test_export_bars(src_device, iommufd, src_name, dst_name,
 			       dst_ioas);
+	if (ret)
+		return ret;
+
+	ret = test_export_invalid_indices(src_device);
 	if (ret)
 		return ret;
 
