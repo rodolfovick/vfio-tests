@@ -33,18 +33,22 @@ else
 endif
 ARCHIVE_NAME = $(ARCHIVE_BASE_NAME)-$(GIT_VERSION)
 
-.PHONY: all clean archive
+.PHONY: all clean archive bar-conflict
 
-all: $(TEST_BINS)
+all: $(TEST_BINS) bar-conflict
 
 $(TEST_BINS): %: %.o $(SHARED_OBJS)
 	$(CC) $(CFLAGS) -o $@ $^
+
+bar-conflict:
+	$(MAKE) -C bar-conflict
 
 %.o: %.c $(HEADERS) Makefile
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
 	rm -f $(SHARED_OBJS) $(TEST_SRCS:.c=.o) $(TEST_BINS) $(ARCHIVE_BASE_NAME)*.tar.gz run-test.log
+	$(MAKE) -C bar-conflict clean
 
 DEVICE ?=
 check:

@@ -66,7 +66,7 @@ static int try_dmabuf_export(int device, int region_index, __u64 length)
 
 static int test_export_bars(int src_device, int iommufd,
 			    const char *src_name, const char *dst_name,
-			    int dst_ioas)
+			    int dst_ioas, int bar_conflict)
 {
 	struct vfio_region_info region_info = { .argsz = sizeof(region_info) };
 	int i, ret;
@@ -93,8 +93,19 @@ static int test_export_bars(int src_device, int iommufd,
 
 		dmabuf_fd = try_dmabuf_export(src_device, i, region_info.size);
 		if (dmabuf_fd < 0) {
+			if (i == bar_conflict) {
+				printf("\t[PASS] dma-buf rejected (%s)\n",
+				       strerror(errno));
+				continue;
+			}
 			printf("\tdma-buf failed (%s)\n", strerror(errno));
 			continue;
+		}
+
+		if (i == bar_conflict) {
+			printf("\t[FAIL] dma-buf should have been rejected\n");
+			close(dmabuf_fd);
+			return -1;
 		}
 
 		printf("\texported as dma-buf fd %d\n", dmabuf_fd);
@@ -166,6 +177,7 @@ static int test_export_invalid_indices(int device)
 void usage(char *name)
 {
 	printf("usage: %s [options] <ssss:bb:dd.f>\n", name);
+	printf("\t-b BAR  expect dma-buf export to fail for this BAR index\n");
 	printf("\t-d BDF  destination device for P2P mapping\n");
 	printf("\tWithout -d: export all mmappable BARs and self-map dma-buf\n");
 	printf("\tWith -d:    export src BARs, map into dst IOAS (P2P)\n");
@@ -177,10 +189,14 @@ int main(int argc, char **argv)
 	const char *src_name, *dst_name = NULL;
 	int opt, src_device, dst_device, iommufd, ret;
 	int src_ioas, dst_ioas;
+	int bar_conflict = -1;
 	struct vfio_device_info device_info = { .argsz = sizeof(device_info) };
 
-	while ((opt = getopt(argc, argv, "d:h")) != -1) {
+	while ((opt = getopt(argc, argv, "b:d:h")) != -1) {
 		switch (opt) {
+		case 'b':
+			bar_conflict = atoi(optarg);
+			break;
 		case 'd':
 			dst_name = optarg;
 			break;
@@ -234,7 +250,7 @@ int main(int argc, char **argv)
 	}
 
 	ret = test_export_bars(src_device, iommufd, src_name, dst_name,
-			       dst_ioas);
+			       dst_ioas, bar_conflict);
 	if (ret)
 		return ret;
 
