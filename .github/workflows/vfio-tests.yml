@@ -1,0 +1,168 @@
+name: VFIO Test Suite
+
+on:
+  workflow_dispatch:
+
+env:
+  FEDORA_IMAGE_URL: "https://download.fedoraproject.org/pub/fedora/linux/releases/44/Cloud/x86_64/images/Fedora-Cloud-Base-Generic-44-1.7.x86_64.qcow2"
+  SSH_OPTS: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o IdentitiesOnly=yes -o ConnectTimeout=10 -o LogLevel=ERROR"
+  VM_PORT: "2222"
+  IGB_ADDR: "0x03"
+  IGB_BDF: "0000:00:03.0"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Check KVM availability
+        run: |
+          if [ ! -e /dev/kvm ]; then
+            echo "::error::KVM not available on this runner"
+            exit 1
+          fi
+          sudo chmod 666 /dev/kvm
+          ls -l /dev/kvm
+
+      - name: Install host dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q qemu-system-x86 cloud-image-utils
+
+      - name: Generate SSH keypair
+        run: ssh-keygen -t ed25519 -f ssh_key -N "" -q
+
+      - name: Cache Fedora cloud image
+        id: cache-image
+        uses: actions/cache@v5
+        with:
+          path: fedora-base.qcow2
+          key: fedora-cloud-44-x86_64-v1
+
+      - name: Download Fedora cloud image
+        if: steps.cache-image.outputs.cache-hit != 'true'
+        run: curl -L -o fedora-base.qcow2 "$FEDORA_IMAGE_URL"
+
+      - name: Create cloud-init config
+        run: |
+          SSH_PUB=$(cat ssh_key.pub)
+
+          cat > meta-data <<EOF
+          instance-id: vfio-test
+          local-hostname: vfio-test
+          EOF
+
+          cat > user-data <<EOF
+          #cloud-config
+          users:
+            - name: test
+              sudo: ALL=(ALL) NOPASSWD:ALL
+              lock_passwd: false
+              ssh_authorized_keys:
+                - $SSH_PUB
+
+          runcmd:
+            - "dnf install -y gcc make kernel-devel-\$(uname -r) pciutils git"
+            - "grubby --update-kernel=ALL --args='intel_iommu=on'"
+
+          power_state:
+            delay: now
+            mode: reboot
+            message: "Rebooting for intel_iommu=on"
+            condition: true
+          EOF
+
+      - name: Prepare VM disk
+        run: |
+          cp fedora-base.qcow2 fedora.qcow2
+          qemu-img resize fedora.qcow2 20G
+          cloud-localds seed.iso user-data meta-data
+
+      - name: Start QEMU VM
+        run: |
+          qemu-system-x86_64 \
+            -machine q35,accel=kvm,kernel-irqchip=split \
+            -cpu host \
+            -m 10G \
+            -smp 4 \
+            -device intel-iommu,intremap=on,device-iotlb=on \
+            -drive file=fedora.qcow2,format=qcow2,if=virtio \
+            -drive file=seed.iso,format=raw,if=virtio \
+            -netdev user,id=mgmt,hostfwd=tcp::${VM_PORT}-:22 \
+            -device virtio-net-pci,netdev=mgmt \
+            -netdev user,id=igbnet \
+            -device igb,netdev=igbnet,addr=$IGB_ADDR \
+            -display none \
+            -serial file:serial.log \
+            -monitor none \
+            -daemonize \
+            -pidfile qemu.pid
+
+      - name: Wait for VM ready
+        run: |
+          echo "Waiting for VM (cloud-init + reboot with intel_iommu=on)..."
+          for i in $(seq 1 120); do
+            if ssh $SSH_OPTS -i ssh_key -p $VM_PORT test@localhost \
+                 "grep -q intel_iommu /proc/cmdline" 2>/dev/null; then
+              echo "VM ready after $((i * 5)) seconds"
+              ssh $SSH_OPTS -i ssh_key -p $VM_PORT test@localhost \
+                  "cat /proc/cmdline"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::VM did not become ready in time"
+          echo "--- serial.log ---"
+          tail -100 serial.log
+          exit 1
+
+      - name: Clone and build tests
+        run: |
+          ssh $SSH_OPTS -i ssh_key -p $VM_PORT test@localhost \
+            "git clone --depth 1 --branch ${GITHUB_REF_NAME} https://github.com/${GITHUB_REPOSITORY}.git ~/vfio-tests && cd ~/vfio-tests && make -j\$(nproc) 2>&1"
+
+      - name: Bind igb to vfio-pci
+        run: |
+          ssh $SSH_OPTS -i ssh_key -p $VM_PORT test@localhost "sudo bash -s" <<SCRIPT
+          set -ex
+          modprobe vfio-pci
+          modprobe iommufd || true
+          echo "$IGB_BDF" > /sys/bus/pci/devices/$IGB_BDF/driver/unbind 2>/dev/null || true
+          echo "vfio-pci" > /sys/bus/pci/devices/$IGB_BDF/driver_override
+          echo "$IGB_BDF" > /sys/bus/pci/drivers_probe
+          readlink /sys/bus/pci/devices/$IGB_BDF/driver
+          SCRIPT
+
+      - name: Run test suite
+        run: |
+          ssh $SSH_OPTS -i ssh_key -p $VM_PORT test@localhost \
+            "cd ~/vfio-tests && sudo ./run-test.sh $IGB_BDF"
+
+      - name: Collect logs
+        if: always()
+        run: |
+          scp $SSH_OPTS -i ssh_key -P $VM_PORT \
+            test@localhost:~/vfio-tests/run-test.log ./run-test.log 2>/dev/null || true
+          ssh $SSH_OPTS -i ssh_key -p $VM_PORT test@localhost \
+            "sudo dmesg" > vm-dmesg.log 2>/dev/null || true
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: test-results
+          path: |
+            run-test.log
+            serial.log
+            vm-dmesg.log
+
+      - name: Shutdown VM
+        if: always()
+        run: |
+          if [ -f qemu.pid ]; then
+            kill $(cat qemu.pid) 2>/dev/null || true
+          fi
